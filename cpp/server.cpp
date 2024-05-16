@@ -217,32 +217,33 @@ private:
   std::string IPAddress;
 };
 
-void parlconnect(int cid) {
-    dataSilos[cid]->connect();
-}
-// 多线程并行执行的代码块
-void parlinitQuery(int cid, int qid) {
-    dataSilos[cid]->initQuery(qid);
-}
-
-void parlcountRequest(int cid, float R) {
-    dataSilos[cid]->sendCountRequest(R);
-}
-
-void parlsharingSecret(int cid) {
-    dataSilos[cid]->sendAlpha();
-}
-
-void parlgetSum(int cid) {
-    dataSilos[cid]->requestSum();
-}
-
-void parlfinalQuery(int cid, float R) {
-    dataSilos[cid]->sendfinalQuery(R);
-}
-
 class FedQueryServiceServer {
 public:
+    
+  void parlconnect(int cid) {
+      dataSilos[cid]->connect();
+  }
+  
+  // 多线程并行执行的代码块
+  void parlinitQuery(int cid, int qid) {
+      dataSilos[cid]->initQuery(qid);
+  }
+
+  void parlcountRequest(int cid, float R) {
+      dataSilos[cid]->sendCountRequest(R);
+  }
+
+  void parlsharingSecret(int cid) {
+      dataSilos[cid]->sendAlpha();
+  }
+
+  void parlgetSum(int cid) {
+      dataSilos[cid]->requestSum();
+  }
+
+  void parlfinalQuery(int cid, float R) {
+      dataSilos[cid]->sendfinalQuery(R);
+  }
 
 private:
   std::vector<std::shared_ptr<ServerToSilo>> dataSilos;

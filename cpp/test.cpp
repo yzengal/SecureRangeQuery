@@ -10,10 +10,7 @@ using namespace std;
 class A {
 public:
     A() {
-        std::thread myThread[10];
-        for (int i=0; i<10; ++i) {
-            myThread[i].(print, this, i);
-        }
+
     }
 
     void print(int a) {
@@ -21,11 +18,27 @@ public:
         std::cout << a << std::endl;
     }
 
+    
+    void test() {
+        const int N = 4;
+        std::thread myThread[N];
+        for (int i=0; i<N; ++i) {
+            myThread[i] = std::thread(&A::print, this, i);
+        }
+        for (int i=0; i<N; ++i) {
+            myThread[i].join();
+        }
+    }
+
 private:
     std::mutex print_mutex;
 };
 
 int main() {
-    A a();
+    A a;
+
+    a.test();
+    cout << endl;
+
     return 0;
 }

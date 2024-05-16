@@ -30,6 +30,9 @@
 *.exe
 *.out
 *.app
+main
+silo
+server
 
 .vscode/
 .history/
