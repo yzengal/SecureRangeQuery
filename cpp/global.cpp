@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "global.h"
-#define LOCAL_DEBUG
 
 namespace ICDE18 {
 
@@ -113,16 +112,35 @@ double CommQueryAnswer(const RecordSummary& a) {
     return a.ByteSizeLong();
 }
 
-std::string GetDataFilePath(int argc, char** argv) {
-    std::string db_path;
-    std::string arg_str("--data_path");
+std::string GetIPAddress(int argc, char** argv) {
+    std::string ip_address;
+    std::string arg_str("--ip");
     if (argc > 1) {
         std::string argv_1 = argv[1];
         size_t start_position = argv_1.find(arg_str);
         if (start_position != std::string::npos) {
             start_position += arg_str.size();
             if (argv_1[start_position] == ' ' || argv_1[start_position] == '=') {
-                db_path = argv_1.substr(start_position + 1);
+                ip_address = argv_1.substr(start_position + 1);
+            }
+        }
+    } else {
+        ip_address = "0.0.0.0:50051";
+    }
+    
+    return ip_address;
+}
+
+std::string GetDataFilePath(int argc, char** argv) {
+    std::string db_path;
+    std::string arg_str("--data_path");
+    if (argc > 2) {
+        std::string argv_2 = argv[2];
+        size_t start_position = argv_2.find(arg_str);
+        if (start_position != std::string::npos) {
+            start_position += arg_str.size();
+            if (argv_2[start_position] == ' ' || argv_2[start_position] == '=') {
+                db_path = argv_2.substr(start_position + 1);
             }
         }
     } else {
@@ -135,13 +153,13 @@ std::string GetDataFilePath(int argc, char** argv) {
 std::string GetQueryFilePath(int argc, char** argv) {
     std::string db_path;
     std::string arg_str("--query_path");
-    if (argc > 1) {
-        std::string argv_1 = argv[1];
-        size_t start_position = argv_1.find(arg_str);
+    if (argc > 2) {
+        std::string argv_2 = argv[2];
+        size_t start_position = argv_2.find(arg_str);
         if (start_position != std::string::npos) {
             start_position += arg_str.size();
-            if (argv_1[start_position] == ' ' || argv_1[start_position] == '=') {
-                db_path = argv_1.substr(start_position + 1);
+            if (argv_2[start_position] == ' ' || argv_2[start_position] == '=') {
+                db_path = argv_2.substr(start_position + 1);
             }
         }
     } else {
@@ -242,6 +260,9 @@ void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries) 
             abort();
         }  
         queries[i].qtype = GetQueryType(queryType);
+        #ifdef LOCAL_DEBUG
+        printf("Query #%d: %s, location=(%.2lf, %.2lf), rad=%.2lf\n", i+1, queryType.c_str(), queries[i].x, queries[i].y, queries[i].rad);
+        #endif
     }
 
     fin.close();

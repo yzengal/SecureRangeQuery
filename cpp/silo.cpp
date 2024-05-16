@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <thread>
 
 #include <grpc/grpc.h>
 #include <grpcpp/security/server_credentials.h>
@@ -204,6 +205,13 @@ public:
         Record record;
         m_RecordVector.clear();
 
+        #ifdef LOCAL_DEBUG
+        printf("Silo %d: CircleRangeQuery, center=(%.2lf,%.2lf), rad=%.2lf\n", 
+                m_silo->GetSiloID(), circle->center().x(), circle->center().y(), circle->rad());
+        fflush(stdout);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        #endif
+
         std::vector<Record_t> ans;
         m_silo->AnswerCircleRangeQuery(*circle, ans);
         for (auto record_ : ans) {
@@ -224,11 +232,11 @@ private:
     QueryLogger log;
 };
 
-void RunSilo(const std::string& IPAddress, const std::string& db_path) {
+void RunSilo(const std::string& IPAddress, const std::string& data_file) {
     std::string server_address(IPAddress);
     int siloID = 1;
 
-    FedQueryServiceImpl siloService(siloID, db_path);
+    FedQueryServiceImpl siloService(siloID, data_file);
 
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
@@ -239,11 +247,11 @@ void RunSilo(const std::string& IPAddress, const std::string& db_path) {
 }
 
 int main(int argc, char** argv) {
-    // Expect only arg: --data_path=../../data/data_01.txt
-    std::string db = ICDE18::GetDataFilePath(argc, argv);
-    std::string IPAddress("0.0.0.0:50051");
+    // Expect two args: --ip=0.0.0.0:50051 --data_path=../../data/data_01.txt
+    std::string IPAddress = ICDE18::GetIPAddress(argc, argv);
+    std::string data_file = ICDE18::GetDataFilePath(argc, argv);
 
-    RunSilo(IPAddress, db);
+    RunSilo(IPAddress, data_file);
 
     return 0;
 }

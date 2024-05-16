@@ -10,6 +10,8 @@
 
 #include "ICDE18.grpc.pb.h"
 
+#define LOCAL_DEBUG
+
 using ICDE18::Point;
 using ICDE18::Rectangle;
 using ICDE18::Circle;
@@ -65,6 +67,7 @@ bool IntersectWithRange(const Record_t& a, const Circle_t& b);
 //
 std::string GetDataFilePath(int argc, char** argv);
 std::string GetQueryFilePath(int argc, char** argv);
+std::string GetIPAddress(int argc, char** argv);
 void GetInputData(const std::string& fileName, std::vector<Record_t>& recordVector);
 QueryType_t GetQueryType(const std::string& str);
 void GetInputQuery(const std::string& fileName, std::vector<Rectangle_t>& queries);
@@ -115,7 +118,8 @@ public:
     void Print() {
         double AvgQueryTime = (queryNum==0) ? 0 : (queryTime/queryNum);
         double AvgQueryComm = (queryNum==0) ? 0 : (queryComm/queryNum);
-        printf("QueryNum = %d, AvgQueryTime = %.4lf, AvgQueryComm = %.4lf,", queryNum, AvgQueryTime, AvgQueryComm);
+        printf("\n\n-------------- Query Log --------------\n");
+        printf("QueryNum = %d, AvgQueryTime = %.4lfms, AvgQueryComm = %.4lfbytes\n\n", queryNum, AvgQueryTime, AvgQueryComm);
         fflush(stdout);
     }
 

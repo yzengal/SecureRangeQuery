@@ -1,2 +1,6 @@
-1
+5
+RangeQuery 0 0 1
 RangeQuery 0 0 2
+RangeQuery 0 0 5
+RangeQuery 0 0 8
+RangeQuery 0 0 10

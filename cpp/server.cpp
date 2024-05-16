@@ -91,8 +91,8 @@ public:
   }
 
   void print() {
-    printf("server = %d, IPAddress = %s\n", serverID, IPAddress.c_str());
-    printf("The query log is as follows:\n");
+    printf("\n\nserver = %d, IPAddress = %s\n", serverID, IPAddress.c_str());
+    //printf("The query log is as follows:\n");
     log.Print();
     printf("[Disconnect] Server\n");
     fflush(stdout);
@@ -134,7 +134,7 @@ private:
     Record record;
     ClientContext context;
 
-    printf("Looking for data records between (%.0lf, %.0lf) and (%.0lf, %.0lf)\n",
+    printf("Looking for data records between (%.2lf, %.2lf) and (%.2lf, %.2lf)\n",
             rect.lo().x(), rect.lo().y(), rect.hi().x(), rect.hi().y());
     fflush(stdout);
 
@@ -153,12 +153,12 @@ private:
     }
 
     log.SetEndTimer();
-    log.LogOneQuery(record.ByteSizeLong() * record_list_.size());
+    log.LogOneQuery(CommQueryAnswer(record_list_));
 
     printf("There are %d objects in the query range:\n", (int)record_list_.size());
     for (auto record : record_list_) {
       if (record.has_p()) {
-        printf("\tID = %d, location = (%.4lf,%.4lf)\n", 
+        printf("  ID = %d, location = (%.2lf,%.2lf)\n", 
                 record.id(), record.p().x(), record.p().y());
       } else {
         printf("Data silo returns incomplete record.\n");
@@ -176,7 +176,7 @@ private:
     Record record;
     ClientContext context;
 
-    printf("Looking for data records within center(%.0lf, %.0lf) and radius %.0lf\n",
+    printf("Looking for data records within center(%.2lf, %.2lf) and radius %.2lf\n",
             circ.center().x(), circ.center().y(), circ.rad());
     fflush(stdout);
 
@@ -194,12 +194,12 @@ private:
     }
 
     log.SetEndTimer();
-    log.LogOneQuery(record.ByteSizeLong() * record_list_.size());
+    log.LogOneQuery(CommQueryAnswer(record_list_));
 
     printf("There are %d objects in the query range:\n", (int)record_list_.size());
     for (auto record : record_list_) {
       if (record.has_p()) {
-        printf("\tID = %d, location = (%.4lf,%.4lf)\n", 
+        printf("  ID = %d, location = (%.2lf,%.2lf)\n", 
                 record.id(), record.p().x(), record.p().y());
       } else {
         printf("Data silo returns incomplete record.\n");
@@ -218,7 +218,7 @@ private:
 };
 
 int main(int argc, char** argv) {
-  // Expect only arg: --query_path=path/to/route_guide_db.json.
+  // Expect only arg: --query_path=../../data/query.txt
   std::string query_file = ICDE18::GetQueryFilePath(argc, argv);
   std::string IPAddress("localhost:50051");
 
