@@ -268,4 +268,29 @@ void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries) 
     fin.close();
 }
 
+void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_addresses)
+    std::ifstream fin(fileName);
+    if (!fin.is_open()) {
+        printf("Failed to open %s\n", fileName.c_str());
+        abort();
+    }
+
+    int n;
+
+    fin >> n;
+    if (fin.fail()) {
+        printf("Failed to parse the ip address %s\n", fileName.c_str());
+        abort();
+    }
+
+    ip_addresses.resize(n);
+    for (int i=0; i<n; ++i) {
+        fin >> ip_addresses[i]; 
+        #ifdef LOCAL_DEBUG
+        printf("Silo #%d: ip=%s\n", i+1, ip_addresses[i].c_str());
+        #endif
+    }
+    fin.close();
+}
+
 }  // namespace ICDE18

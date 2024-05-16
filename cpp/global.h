@@ -72,6 +72,7 @@ void GetInputData(const std::string& fileName, std::vector<Record_t>& recordVect
 QueryType_t GetQueryType(const std::string& str);
 void GetInputQuery(const std::string& fileName, std::vector<Rectangle_t>& queries);
 void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries);
+void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_addresses);
 
 // process communication cost
 //

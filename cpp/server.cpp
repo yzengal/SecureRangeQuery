@@ -219,11 +219,28 @@ private:
 
 class FedQueryServiceServer {
 public:
-    
+  FedQueryServiceServer(const std::string& fileName) {
+    GetIPAddresses(fileName, m_IPAddresses);
+    if (m_IPAddresses.empty()) {
+      printf("%s contains no ip address\n", fileName.c_str());
+      exit(0);
+    }
+
+    // bridge the channel between server and each data silo
+    m_ServerToSilos.resize(m_IPAddresses.size());
+    for (int i=0; i<m_IPAddresses.size(); ++i) {
+      std::string IPAddress = m_IPAddresses[i];
+      std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
+      printf("[Connect] Server\n");
+      m_ServerToSilos[i] = std::make_shared<ServerToSilo>(IPAddress, grpc::InsecureChannelCredentials());
+    }  
+  }
+
+
   void parlconnect(int cid) {
       dataSilos[cid]->connect();
   }
-  
+
   // 多线程并行执行的代码块
   void parlinitQuery(int cid, int qid) {
       dataSilos[cid]->initQuery(qid);
@@ -233,20 +250,9 @@ public:
       dataSilos[cid]->sendCountRequest(R);
   }
 
-  void parlsharingSecret(int cid) {
-      dataSilos[cid]->sendAlpha();
-  }
-
-  void parlgetSum(int cid) {
-      dataSilos[cid]->requestSum();
-  }
-
-  void parlfinalQuery(int cid, float R) {
-      dataSilos[cid]->sendfinalQuery(R);
-  }
-
 private:
-  std::vector<std::shared_ptr<ServerToSilo>> dataSilos;
+  std::vector<std::shared_ptr<ServerToSilo>> m_ServerToSilos;
+  std::vector<std::string> m_IPAddresses;
 };
 
 int main(int argc, char** argv) {
