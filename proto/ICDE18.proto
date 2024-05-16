@@ -1,0 +1,116 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+package ICDE18;
+
+service FedQueryService {
+
+    // A client-to-server streaming RPC.
+    //
+    // Obtains the records that are within a Circle range.
+    // 
+    // Results are streamed rather than returned at once (e.g. in a response message with a
+    // repeated field), as the rectangle may cover a large area and contain a
+    // huge number of record.
+    rpc AnswerCircleRangeQuery(Circle) returns (stream Record) {}
+
+
+    // A client-to-server streaming RPC.
+    //
+    // Obtains the records that are within a Rectangle range.
+    // 
+    // Results are streamed rather than returned at once (e.g. in a response message with a
+    // repeated field), as the rectangle may cover a large area and contain a
+    // huge number of record.
+    rpc AnswerRectangleRangeQuery(Rectangle) returns (stream Record) {}
+
+    // A client-to-server streaming RPC.
+    //
+    // Obtains the #(records) that are within a Circle range.
+    // 
+    // Results are streamed rather than returned at once (e.g. in a response message with a
+    // repeated field), as the rectangle may cover a large area and contain a
+    // huge number of record.
+    // rpc AnswerCircleRangeCount(Circle) returns (RecordSummary) {}
+
+
+    // A client-to-server streaming RPC.
+    //
+    // Obtains the #(records) that are within a Rectangle range.
+    // 
+    // Results are streamed rather than returned at once (e.g. in a response message with a
+    // repeated field), as the rectangle may cover a large area and contain a
+    // huge number of record.
+    // rpc AnswerRectangleRangeCount(Rectangle) returns (RecordSummary) {}
+};
+
+// Points are represented as latitude-longitude pairs in the E7 representation
+// (degrees multiplied by 10**7 and rounded to the nearest integer).
+// Latitudes should be in the range +/- 90 degrees and longitude should be in
+// the range +/- 180 degrees (inclusive).
+message Point {
+    float x = 1;
+    float y = 2;
+}
+
+
+// A latitude-longitude rectangle, represented as two diagonally opposite
+// points "lo" and "hi".
+message Rectangle {
+    // One corner of the rectangle.
+    Point lo = 1;
+
+    // The other corner of the rectangle.
+    Point hi = 2;
+}
+
+// A latitude-longitude Circle, 
+// represented as the center and radius
+message Circle {
+    // the center of the Circle.
+    Point center = 1;
+
+    // the radius of the Circle.
+    float rad = 2;
+}
+
+// the Circle query range
+message CircleQueryRange {
+    // the ID of this query
+    int32 ID = 1;
+
+    // the Circle range of this query
+    Circle range = 2;
+}
+
+// the Rectangle query range
+message RectangleQueryRange {
+    // the ID of this query
+    int32 ID = 1;
+
+    // the Rectangle range of this query
+    Rectangle range = 2;
+}
+
+
+// A record names something at a given point.
+//
+// If a record could not be named, the name is empty.
+message Record {
+    // The ID of the record.
+    int32 ID = 1;
+
+    // The location of this record.
+    Point p = 2;
+
+    // The measure attribute of this record.
+    // string name = 3;
+}
+
+// A RecordSummary is received in response to a federated range counting query.
+//
+// It contains the number of individual points in the query range.
+message RecordSummary {
+  // The number of points received.
+  int32 point_count = 1;
+}
