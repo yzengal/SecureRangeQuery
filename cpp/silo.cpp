@@ -12,6 +12,7 @@
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 
+
 #include "global.h"
 #include "ICDE18.grpc.pb.h"
 
@@ -238,7 +239,7 @@ void RunSilo(const std::string& IPAddress, const std::string& db_path) {
 }
 
 int main(int argc, char** argv) {
-    // Expect only arg: --data_path=path/to/route_guide_db.json.
+    // Expect only arg: --data_path=../../data/data_01.txt
     std::string db = ICDE18::GetDataFilePath(argc, argv);
     std::string IPAddress("0.0.0.0:50051");
 

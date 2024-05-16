@@ -7,11 +7,12 @@
 #include <thread>
 #include <string>
 
+
 #include <grpc/grpc.h>
-#include <grpcpp/security/server_credentials.h>
-#include <grpcpp/server.h>
-#include <grpcpp/server_builder.h>
-#include <grpcpp/server_context.h>
+#include <grpcpp/channel.h>
+#include <grpcpp/client_context.h>
+#include <grpcpp/create_channel.h>
+#include <grpcpp/security/credentials.h>
 
 #include "global.h"
 #include "ICDE18.grpc.pb.h"
@@ -28,6 +29,8 @@ using grpc::ClientReader;
 using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
+using ICDE18::Circle_t;
+using ICDE18::Rectangle_t;
 using ICDE18::Point;
 using ICDE18::Rectangle;
 using ICDE18::Circle;
@@ -35,6 +38,8 @@ using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
 using ICDE18::RecordSummary;
+using ICDE18::FedQueryService;
+using ICDE18::QueryLogger;
 using std::chrono::system_clock;
 
 int queryNum = 0;
@@ -62,21 +67,21 @@ Rectangle MakeRectangle(float x, float y, float dx, float dy) {
 
 CircleQueryRange MakeCircleQueryRange(float x, float y, float rad) {
   CircleQueryRange ret;
-  ret.set_ID(queryNum++);
+  ret.set_id(queryNum++);
   ret.mutable_range()->CopyFrom(MakeCircle(x, y, rad));
   return ret;
 }
 
 RectangleQueryRange MakeRectangleQueryRange(float x, float y, float dx, float dy) {
   RectangleQueryRange ret;
-  ret.set_ID(queryNum++);
+  ret.set_id(queryNum++);
   ret.mutable_range()->CopyFrom(MakeRectangle(x, y, dx, dy));
   return ret;
 }
 
 class FedQueryServiceServer {
 public:
-  FedQueryServiceServer(std::shared_ptr<Channel> channel, const std::string& _IPAddress) : stub_(FedQueryService::NewStub(channel)) {
+  FedQueryServiceServer(std::shared_ptr<grpc::Channel> channel, const std::string& _IPAddress) : stub_(FedQueryService::NewStub(channel)) {
     serverID = 1;
     IPAddress = _IPAddress;
   }
@@ -86,9 +91,9 @@ public:
   }
 
   void print() {
-    printf("server = %d, IPAddress = %s\n", serverID, IPAddress);
+    printf("server = %d, IPAddress = %s\n", serverID, IPAddress.c_str());
     printf("The query log is as follows:\n");
-    log.print();
+    log.Print();
     printf("[Disconnect] Server\n");
     fflush(stdout);
   }
@@ -97,8 +102,8 @@ public:
     std::vector<Circle_t> circles;
 
     SetCircleQuery(fileName, circles);
-    for (auto circle : circles) {
-      GetQueryAnswer(circle);
+    for (auto circ : circles) {
+      GetQueryAnswer(circ);
     }
   }
 
@@ -113,17 +118,17 @@ public:
   }
 
   void SetCircleQuery(const std::string& fileName, std::vector<Circle_t>& circles) {
-    GetInputQuery(fileNames, circles);
+    GetInputQuery(fileName, circles);
   }
 
   void SetRectangleQuery(const std::string& fileName, std::vector<Rectangle_t>& rectangles) {
-    GetInputQuery(fileNames, rectangles);
+    GetInputQuery(fileName, rectangles);
   }
 
 
 private:
-  bool GetQueryAnswer(const Rectangle_t&t _rect) {
-    SetStartTimer.SetStartTimer();
+  bool GetQueryAnswer(const Rectangle_t& _rect) {
+    log.SetStartTimer();
 
     Rectangle rect = MakeRectangle(_rect.x, _rect.y, _rect.dx, _rect.dy);
     Record record;
@@ -147,14 +152,14 @@ private:
       printf("gRPC [AnswerRectangleRangeQuery] failed.\n");
     }
 
-    SetStartTimer.EndStartTimer();
+    log.SetEndTimer();
     log.LogOneQuery(record.ByteSizeLong() * record_list_.size());
 
-    printf("There are %d objects in the query range:\n", (int)record_list_.size()),
+    printf("There are %d objects in the query range:\n", (int)record_list_.size());
     for (auto record : record_list_) {
-      if (record->has_ID() && record->has_p()) {
+      if (record.has_p()) {
         printf("\tID = %d, location = (%.4lf,%.4lf)\n", 
-                record->ID(), record->p().x(), record->p().y());
+                record.id(), record.p().x(), record.p().y());
       } else {
         printf("Data silo returns incomplete record.\n");
       }
@@ -164,8 +169,8 @@ private:
     return true;
   }
 
-  bool GetQueryAnswer(const Circle&t _circ) {
-    SetStartTimer.SetStartTimer();
+  bool GetQueryAnswer(const Circle_t& _circ) {
+    log.SetStartTimer();
 
     Circle circ = MakeCircle(_circ.x, _circ.y, _circ.rad);
     Record record;
@@ -188,14 +193,14 @@ private:
       printf("gRPC [AnswerCircleRangeQuery] failed.\n");
     }
 
-    SetStartTimer.EndStartTimer();
+    log.SetEndTimer();
     log.LogOneQuery(record.ByteSizeLong() * record_list_.size());
 
-    printf("There are %d objects in the query range:\n", (int)record_list_.size()),
+    printf("There are %d objects in the query range:\n", (int)record_list_.size());
     for (auto record : record_list_) {
-      if (record->has_ID() && record->has_p()) {
+      if (record.has_p()) {
         printf("\tID = %d, location = (%.4lf,%.4lf)\n", 
-                record->ID(), record->p().x(), record->p().y());
+                record.id(), record.p().x(), record.p().y());
       } else {
         printf("Data silo returns incomplete record.\n");
       }
@@ -206,8 +211,8 @@ private:
   }
 
   std::unique_ptr<FedQueryService::Stub> stub_;
-  std::vector<record> record_list_;
-  queryLogger log;
+  std::vector<Record> record_list_;
+  QueryLogger log;
   int serverID;
   std::string IPAddress;
 };
@@ -219,10 +224,13 @@ int main(int argc, char** argv) {
 
   std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
   printf("[Connect] Server\n");
-  FedQueryServiceServer fedServer(channel);
+  FedQueryServiceServer fedServer(channel, IPAddress);
 
-  printf("-------------- Test Rectangle Range Query --------------\n");
-  fedServer.GetRectangleQueryAnswer(query_file);
+  printf("-------------- Test Circle Range Query --------------\n");
+  fedServer.GetCircleQueryAnswer(query_file);
+
+  // printf("-------------- Test Rectangle Range Query --------------\n");
+  // fedServer.GetRectangleQueryAnswer(query_file);
 
 
   return 0;

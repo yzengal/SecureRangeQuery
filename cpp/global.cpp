@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "global.h"
+#define LOCAL_DEBUG
 
 namespace ICDE18 {
 
@@ -95,6 +96,13 @@ double CommQueryAnswer(const std::vector<Record>& a) {
 
 double CommQueryAnswer(const std::vector<Record_t>& a) {
     Record tmp;
+    Point p;
+
+    tmp.set_id(0);
+    p.set_x(0);
+    p.set_y(0);
+    tmp.mutable_p()->CopyFrom(p);
+
     if (a.size() == 0)
         return sizeof(a);
     else
@@ -118,7 +126,7 @@ std::string GetDataFilePath(int argc, char** argv) {
             }
         }
     } else {
-        db_path = "./";
+        db_path = "/home/yzengal/SecureRangeQuery/data/data_01.txt";
     }
     
     return db_path;
@@ -137,7 +145,7 @@ std::string GetQueryFilePath(int argc, char** argv) {
             }
         }
     } else {
-        db_path = "./";
+        db_path = "/home/yzengal/SecureRangeQuery/data/query.txt";
     }
     
     return db_path;
@@ -161,6 +169,9 @@ void GetInputData(const std::string& fileName, std::vector<Record_t>& recordVect
     recordVector.resize(n);
     for (int i=0; i<n; ++i) {
         fin >> recordVector[i].ID >> recordVector[i].x >> recordVector[i].y; 
+        #ifdef LOCAL_DEBUG
+        printf("Record #%d: ID=%d, location=(%.2lf, %.2lf)\n", i+1, recordVector[i].ID, recordVector[i].x, recordVector[i].y);
+        #endif
     }
     fin.close();
 }

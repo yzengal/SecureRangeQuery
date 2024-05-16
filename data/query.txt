@@ -1,0 +1,2 @@
+1
+RangeQuery 0 0 2
