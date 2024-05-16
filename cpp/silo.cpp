@@ -38,9 +38,9 @@ Record MakeRecord(const Record_t& r) {
   Record ret;
   Point p;
 
+  ret.set_id(r.ID);
   p.set_x(r.x);
   p.set_y(r.y);
-  ret.set_ID(r.ID);
   ret.mutable_p()->CopyFrom(p);
   
   return ret;
@@ -66,7 +66,7 @@ public:
 
         ans.clear();
         for (auto rec : data) {
-            if (IntersectWithRange(rec.p, circ)) {
+            if (IntersectWithRange(rec, circ)) {
                 ans.emplace_back(rec);
             }
         }
@@ -75,7 +75,7 @@ public:
         log.LogOneQuery(CommRangeQuery(range)+CommQueryAnswer(ans));
     }
 
-    void AnsweRectangleRangeQuery(const Rectangle& range, std::vector<Record_t>& ans) {
+    void AnswerRectangleRangeQuery(const Rectangle& range, std::vector<Record_t>& ans) {
         log.SetStartTimer();
         ICDE18::Rectangle_t rect;
 
@@ -86,7 +86,7 @@ public:
 
         ans.clear();
         for (auto rec : data) {
-            if (IntersectWithRange(rec.p, rect)) {
+            if (IntersectWithRange(rec, rect)) {
                 ans.emplace_back(rec);
             }
         }
@@ -100,7 +100,7 @@ public:
 
         log.SetStartTimer();
         for (auto rec : data) {
-            if (IntersectWithRange(rec.p, range)) {
+            if (IntersectWithRange(rec, range)) {
                 ++ret;
             }
         }
@@ -111,13 +111,13 @@ public:
         return ret;
     }
 
-    int AnsweRectangleRangeCount(const Rectangle& range, RecordSummary& ans) {
+    int AnswerRectangleRangeCount(const Rectangle& range, RecordSummary& ans) {
         int ret = 0;
 
         log.SetStartTimer();
         for (auto rec : data) {
-            if (IntersectWithRange(rec.p, range)) {
-                ans.emplace_back(rec);
+            if (IntersectWithRange(rec, range)) {
+                ++ret;
             }
         }
         ans.set_point_count(ret);
@@ -150,12 +150,12 @@ public:
         siloID = _siloID;
     }
 
-    void SetSiloIPAddress(string _siloIP) {
+    void SetSiloIPAddress(std::string _siloIP) {
         siloIP = _siloIP;
     }
 
     void Print() {
-        printf("SiloID = %d, IPAddress = %s:%d, DataSize = %d\n", siloID, siloIP, siloPort, (int)data.size());
+        printf("SiloID = %d, IPAddress = %s, DataSize = %d\n", siloID, siloIP.c_str(), (int)data.size());
         printf("The query log is as follows:\n");
         log.Print();
         printf("\n\n");
@@ -171,7 +171,7 @@ private:
 
 class FedQueryServiceImpl final : public FedQueryService::Service {
 public:
-    explicit FedQueryServiceImpl(const int siloID, const std::sting& fileName) {
+    explicit FedQueryServiceImpl(const int siloID, const std::string& fileName) {
         m_silo = std::make_unique<Silo>(siloID, fileName);  
     }
 
@@ -187,7 +187,7 @@ public:
         for (auto record_ : ans) {
            record = MakeRecord(record_);
            m_RecordVector.emplace_back(record_);
-           writer->Write(&record);
+           writer->Write(record);
         }
 
         log.SetEndTimer();
@@ -208,7 +208,7 @@ public:
         for (auto record_ : ans) {
            record = MakeRecord(record_);
            m_RecordVector.emplace_back(record_);
-           writer->Write(&record);
+           writer->Write(record);
         }
 
         log.SetEndTimer();
@@ -242,7 +242,7 @@ int main(int argc, char** argv) {
     std::string db = ICDE18::GetDataFilePath(argc, argv);
     std::string IPAddress("0.0.0.0:50051");
 
-    RunSilo(db);
+    RunSilo(IPAddress, db);
 
     return 0;
 }

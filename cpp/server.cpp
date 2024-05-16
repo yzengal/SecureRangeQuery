@@ -14,7 +14,6 @@
 #include <grpcpp/server_context.h>
 
 #include "global.h"
-#include "silo.hpp"
 #include "ICDE18.grpc.pb.h"
 
 using grpc::Server;

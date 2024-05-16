@@ -76,8 +76,8 @@ message Circle {
 
 // the Circle query range
 message CircleQueryRange {
-    // the ID of this query
-    int32 ID = 1;
+    // the id of this query
+    int32 id = 1;
 
     // the Circle range of this query
     Circle range = 2;
@@ -85,8 +85,8 @@ message CircleQueryRange {
 
 // the Rectangle query range
 message RectangleQueryRange {
-    // the ID of this query
-    int32 ID = 1;
+    // the id of this query
+    int32 id = 1;
 
     // the Rectangle range of this query
     Rectangle range = 2;
@@ -97,8 +97,8 @@ message RectangleQueryRange {
 //
 // If a record could not be named, the name is empty.
 message Record {
-    // The ID of the record.
-    int32 ID = 1;
+    // The id of the record.
+    int32 id = 1;
 
     // The location of this record.
     Point p = 2;

@@ -53,12 +53,12 @@ inline double GetDistance(const Record_t& a, const Record_t& b);
 inline double GetSquareDistance(const Point& a, const Point& b);
 inline double GetSquareDistance(const Record_t& a, const Point& b);
 inline double GetSquareDistance(const Record_t& a, const Record_t& b);
-inline bool IntersectWithRange(Const Point& a, const Rectangle& b);
-inline bool IntersectWithRange(Const Point& a, const Circle& b);
-inline bool IntersectWithRange(Const Record_t& a, const Rectangle& b);
-inline bool IntersectWithRange(Const Record_t& a, const Circle& b);
-inline bool IntersectWithRange(Const Record_t& a, const Rectangle_t& b);
-inline bool IntersectWithRange(Const Record_t& a, const Circle_t& b);
+bool IntersectWithRange(const Point& a, const Rectangle& b);
+bool IntersectWithRange(const Point& a, const Circle& b);
+bool IntersectWithRange(const Record_t& a, const Rectangle& b);
+bool IntersectWithRange(const Record_t& a, const Circle& b);
+bool IntersectWithRange(const Record_t& a, const Rectangle_t& b);
+bool IntersectWithRange(const Record_t& a, const Circle_t& b);
 
 // process read and write file
 //
@@ -75,6 +75,7 @@ void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries);
 //
 double CommRangeQuery(const Rectangle& a);
 double CommRangeQuery(const Circle& a);
+double CommQueryAnswer(const std::vector<Record_t>& a);
 double CommQueryAnswer(const std::vector<Record>& a);
 double CommQueryAnswer(const RecordSummary& a);
 
