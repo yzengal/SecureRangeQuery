@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <signal.h>
+#include <unistd.h>
 
 #include <grpc/grpc.h>
 #include <grpcpp/security/server_credentials.h>
@@ -226,27 +228,52 @@ public:
         return Status::OK;
     }
 
+    void Print() {
+        m_silo->Print();
+    }
+
 private:
     std::vector<Record_t> m_RecordVector;
     std::unique_ptr<Silo> m_silo;
     QueryLogger log;
 };
 
+std::unique_ptr<FedQueryServiceImpl> siloService_ptr;
+
 void RunSilo(const std::string& IPAddress, const std::string& data_file) {
     std::string server_address(IPAddress);
     int siloID = 1;
 
-    FedQueryServiceImpl siloService(siloID, data_file);
+    siloService_ptr = std::make_unique<FedQueryServiceImpl>(siloID, data_file);
+    // FedQueryServiceImpl siloService(siloID, data_file);
 
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    builder.RegisterService(&siloService);
+    builder.RegisterService(siloService_ptr.get());
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << server_address << std::endl;
     server->Wait();
 }
 
+
+// Ensure the log file is output, when the program is terminated.
+void SignalHandler(int signal) {
+    if (siloService_ptr) {
+        siloService_ptr->Print();
+    }
+    exit(0);
+}
+
+void ResetSignalHandler() {
+    signal(SIGINT, SignalHandler);
+    signal(SIGQUIT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
+    signal(SIGKILL, SignalHandler);
+}
+
 int main(int argc, char** argv) {
+    ResetSignalHandler();
+
     // Expect two args: --ip=0.0.0.0:50051 --data_path=../../data/data_01.txt
     std::string IPAddress = ICDE18::GetIPAddress(argc, argv);
     std::string data_file = ICDE18::GetDataFilePath(argc, argv);
