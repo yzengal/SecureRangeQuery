@@ -79,14 +79,14 @@ RectangleQueryRange MakeRectangleQueryRange(float x, float y, float dx, float dy
   return ret;
 }
 
-class FedQueryServiceServer {
+class ServerToSilo {
 public:
-  FedQueryServiceServer(std::shared_ptr<grpc::Channel> channel, const std::string& _IPAddress) : stub_(FedQueryService::NewStub(channel)) {
+  ServerToSilo(std::shared_ptr<grpc::Channel> channel, const std::string& _IPAddress) : stub_(FedQueryService::NewStub(channel)) {
     serverID = 1;
     IPAddress = _IPAddress;
   }
 
-  ~FedQueryServiceServer() {
+  ~ServerToSilo() {
     print();
   }
 
@@ -215,6 +215,37 @@ private:
   QueryLogger log;
   int serverID;
   std::string IPAddress;
+};
+
+void parlconnect(int cid) {
+    dataSilos[cid]->connect();
+}
+// 多线程并行执行的代码块
+void parlinitQuery(int cid, int qid) {
+    dataSilos[cid]->initQuery(qid);
+}
+
+void parlcountRequest(int cid, float R) {
+    dataSilos[cid]->sendCountRequest(R);
+}
+
+void parlsharingSecret(int cid) {
+    dataSilos[cid]->sendAlpha();
+}
+
+void parlgetSum(int cid) {
+    dataSilos[cid]->requestSum();
+}
+
+void parlfinalQuery(int cid, float R) {
+    dataSilos[cid]->sendfinalQuery(R);
+}
+
+class FedQueryServiceServer {
+public:
+
+private:
+  std::vector<std::shared_ptr<ServerToSilo>> dataSilos;
 };
 
 int main(int argc, char** argv) {
