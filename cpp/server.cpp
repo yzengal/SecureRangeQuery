@@ -81,8 +81,8 @@ RectangleQueryRange MakeRectangleQueryRange(float x, float y, float dx, float dy
 
 class ServerToSilo {
 public:
-  ServerToSilo(std::shared_ptr<grpc::Channel> channel, const std::string& _IPAddress) : stub_(FedQueryService::NewStub(channel)) {
-    serverID = 1;
+  ServerToSilo(std::shared_ptr<grpc::Channel> channel, const int id, const std::string& _IPAddress) : stub_(FedQueryService::NewStub(channel)) {
+    serverID = id;
     IPAddress = _IPAddress;
   }
 
@@ -91,42 +91,17 @@ public:
   }
 
   void print() {
-    printf("\n\nserver = %d, IPAddress = %s\n", serverID, IPAddress.c_str());
+    printf("\n\nServerToSilo = %d, IPAddress = %s\n", serverID, IPAddress.c_str());
     //printf("The query log is as follows:\n");
     log.Print();
-    printf("[Disconnect] Server\n");
+    printf("[Disconnect] ServerToSilo\n");
     fflush(stdout);
   }
 
-  void GetCircleQueryAnswer(const std::string& fileName) {
-    std::vector<Circle_t> circles;
-
-    SetCircleQuery(fileName, circles);
-    for (auto circ : circles) {
-      GetQueryAnswer(circ);
-    }
+  void GetLocalRecord(std::vector<ICDE18::Record>& res) {
+    res = record_list_;
   }
 
-
-  void GetRectangleQueryAnswer(const std::string& fileName) {
-    std::vector<Rectangle_t> rectangles;
-    
-    SetRectangleQuery(fileName, rectangles);
-    for (auto rectangle : rectangles) {
-      GetQueryAnswer(rectangle);
-    }
-  }
-
-  void SetCircleQuery(const std::string& fileName, std::vector<Circle_t>& circles) {
-    GetInputQuery(fileName, circles);
-  }
-
-  void SetRectangleQuery(const std::string& fileName, std::vector<Rectangle_t>& rectangles) {
-    GetInputQuery(fileName, rectangles);
-  }
-
-
-private:
   bool GetQueryAnswer(const Rectangle_t& _rect) {
     log.SetStartTimer();
 
@@ -210,8 +185,9 @@ private:
     return true;
   }
 
+private:
   std::unique_ptr<FedQueryService::Stub> stub_;
-  std::vector<Record> record_list_;
+  std::vector<ICDE18::Record> record_list_;
   QueryLogger log;
   int serverID;
   std::string IPAddress;
@@ -220,7 +196,7 @@ private:
 class FedQueryServiceServer {
 public:
   FedQueryServiceServer(const std::string& fileName) {
-    GetIPAddresses(fileName, m_IPAddresses);
+    ICDE18::GetIPAddresses(fileName, m_IPAddresses);
     if (m_IPAddresses.empty()) {
       printf("%s contains no ip address\n", fileName.c_str());
       exit(0);
@@ -231,38 +207,86 @@ public:
     for (int i=0; i<m_IPAddresses.size(); ++i) {
       std::string IPAddress = m_IPAddresses[i];
       std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
-      printf("[Connect] Server\n");
-      m_ServerToSilos[i] = std::make_shared<ServerToSilo>(IPAddress, grpc::InsecureChannelCredentials());
+      printf("[Connect] channel with Silo %d at ip %s\n", i+1, IPAddress.c_str());
+      m_ServerToSilos[i] = std::make_shared<ServerToSilo>(channel, i, IPAddress);
     }  
   }
 
-
-  void parlconnect(int cid) {
-      dataSilos[cid]->connect();
+  void SetCircleQuery(const std::string& fileName, std::vector<Circle_t>& circles) {
+    GetInputQuery(fileName, circles);
   }
 
-  // 多线程并行执行的代码块
-  void parlinitQuery(int cid, int qid) {
-      dataSilos[cid]->initQuery(qid);
+  void SetRectangleQuery(const std::string& fileName, std::vector<Rectangle_t>& rectangles) {
+    GetInputQuery(fileName, rectangles);
   }
 
-  void parlcountRequest(int cid, float R) {
-      dataSilos[cid]->sendCountRequest(R);
+  void GetCircleQueryAnswer(const std::string& fileName) {
+    std::vector<Circle_t> circles;
+
+    SetCircleQuery(fileName, circles);
+    for (auto circ : circles) {
+      GetQueryAnswer(circ);
+    }
+
+    log.Print();
   }
+
 
 private:
+  void _localRangeQuery(int siloID, const Circle_t& circ) {
+    m_ServerToSilos[siloID]->GetQueryAnswer(circ);
+  }
+
+  void GetQueryAnswer(const Circle_t& circ) {
+    log.SetStartTimer();
+
+    std::vector<std::thread> thread_list(m_ServerToSilos.size());
+
+    // execute local range query
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i] = std::thread(&FedQueryServiceServer::_localRangeQuery, this, i, circ);
+    }
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i].join();
+    }
+
+    // execute secure aggregation
+    record_list_.clear();
+    std::vector<ICDE18::Record> tmp_list;
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      m_ServerToSilos[i]->GetLocalRecord(tmp_list);
+      record_list_.insert(record_list_.end(), tmp_list.begin(), tmp_list.end());
+    }
+
+    log.SetEndTimer();
+    log.LogOneQuery(CommQueryAnswer(record_list_));
+
+    printf("There are %d objects in the query range:\n", (int)record_list_.size());
+    for (auto record : record_list_) {
+      if (record.has_p()) {
+        printf("  ID = %d, location = (%.2lf,%.2lf)\n", 
+                record.id(), record.p().x(), record.p().y());
+      }
+    }
+    fflush(stdout);
+  }
+
   std::vector<std::shared_ptr<ServerToSilo>> m_ServerToSilos;
   std::vector<std::string> m_IPAddresses;
+  std::vector<ICDE18::Record> record_list_;
+  QueryLogger log;
 };
 
 int main(int argc, char** argv) {
-  // Expect only arg: --query_path=../../data/query.txt
+  // Expect only arg: --query_path=../../data/query.txt --ip_path=../../data/ip.txt
   std::string query_file = ICDE18::GetQueryFilePath(argc, argv);
-  std::string IPAddress("localhost:50051");
-
-  std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
+  std::string ip_file = ICDE18::GetSiloIPFilePath(argc, argv);
+  
+  // std::string IPAddress("localhost:50051");
+  // std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
+  
   printf("[Connect] Server\n");
-  FedQueryServiceServer fedServer(channel, IPAddress);
+  FedQueryServiceServer fedServer(ip_file);
 
   printf("-------------- Test Circle Range Query --------------\n");
   fedServer.GetCircleQueryAnswer(query_file);

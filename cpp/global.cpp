@@ -169,6 +169,42 @@ std::string GetQueryFilePath(int argc, char** argv) {
     return db_path;
 }
 
+std::string GetSiloIPFilePath(int argc, char** argv) {
+    std::string db_path;
+    std::string arg_str("--ip_path");
+    if (argc > 2) {
+        std::string argv_2 = argv[2];
+        size_t start_position = argv_2.find(arg_str);
+        if (start_position != std::string::npos) {
+            start_position += arg_str.size();
+            if (argv_2[start_position] == ' ' || argv_2[start_position] == '=') {
+                db_path = argv_2.substr(start_position + 1);
+            }
+        }
+    } else {
+        db_path = "/home/yzengal/SecureRangeQuery/data/ip.txt";
+    }
+    
+    return db_path;
+}
+
+int GetSiloID(int argc, char** argv) {
+    std::string db_path("0");
+    std::string arg_str("--silo_id");
+    if (argc > 3) {
+        std::string argv_3 = argv[3];
+        size_t start_position = argv_3.find(arg_str);
+        if (start_position != std::string::npos) {
+            start_position += arg_str.size();
+            if (argv_3[start_position] == ' ' || argv_3[start_position] == '=') {
+                db_path = argv_3.substr(start_position + 1);
+            }
+        }
+    }
+    
+    return std::stoi(db_path.c_str());
+}
+
 void GetInputData(const std::string& fileName, std::vector<Record_t>& recordVector) {
     std::ifstream fin(fileName);
     if (!fin.is_open()) {
@@ -268,7 +304,7 @@ void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries) 
     fin.close();
 }
 
-void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_addresses)
+void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_addresses) {
     std::ifstream fin(fileName);
     if (!fin.is_open()) {
         printf("Failed to open %s\n", fileName.c_str());

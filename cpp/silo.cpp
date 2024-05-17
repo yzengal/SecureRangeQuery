@@ -240,9 +240,8 @@ private:
 
 std::unique_ptr<FedQueryServiceImpl> siloService_ptr;
 
-void RunSilo(const std::string& IPAddress, const std::string& data_file) {
+void RunSilo(const int siloID, const std::string& IPAddress, const std::string& data_file) {
     std::string server_address(IPAddress);
-    int siloID = 1;
 
     siloService_ptr = std::make_unique<FedQueryServiceImpl>(siloID, data_file);
     // FedQueryServiceImpl siloService(siloID, data_file);
@@ -274,11 +273,12 @@ void ResetSignalHandler() {
 int main(int argc, char** argv) {
     ResetSignalHandler();
 
-    // Expect two args: --ip=0.0.0.0:50051 --data_path=../../data/data_01.txt
+    // Expect two args: --ip=0.0.0.0:50051 --data_path=../../data/data_01.txt --silo_id=1
     std::string IPAddress = ICDE18::GetIPAddress(argc, argv);
     std::string data_file = ICDE18::GetDataFilePath(argc, argv);
+    int siloID = ICDE18::GetSiloID(argc, argv);
 
-    RunSilo(IPAddress, data_file);
+    RunSilo(siloID, IPAddress, data_file);
 
     return 0;
 }

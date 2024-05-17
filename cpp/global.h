@@ -68,11 +68,14 @@ bool IntersectWithRange(const Record_t& a, const Circle_t& b);
 std::string GetDataFilePath(int argc, char** argv);
 std::string GetQueryFilePath(int argc, char** argv);
 std::string GetIPAddress(int argc, char** argv);
+std::string GetSiloIPFilePath(int argc, char** argv);
+int GetSiloID(int argc, char** argv);
 void GetInputData(const std::string& fileName, std::vector<Record_t>& recordVector);
 QueryType_t GetQueryType(const std::string& str);
 void GetInputQuery(const std::string& fileName, std::vector<Rectangle_t>& queries);
 void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries);
 void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_addresses);
+
 
 // process communication cost
 //
