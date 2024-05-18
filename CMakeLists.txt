@@ -37,6 +37,15 @@ target_link_libraries(grpc_proto
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
+add_library(differentialprivacy
+  "./cpp/differentialprivacy.h"
+  "./cpp/differentialprivacy.cpp")
+
+target_link_libraries(differentialprivacy
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF})
+
 add_library(global
   "./cpp/global.h"
   "./cpp/global.cpp")
@@ -51,6 +60,7 @@ foreach(_target
   add_executable(${_target} "./cpp/${_target}.cpp")
   target_link_libraries(${_target}
     grpc_proto
+    differentialprivacy
     global
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
