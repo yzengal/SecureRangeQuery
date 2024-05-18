@@ -55,6 +55,15 @@ target_link_libraries(global
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
+  add_library(grid
+  "./cpp/grid.h"
+  "./cpp/grid.cpp")
+
+target_link_libraries(grid
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF})
+
 foreach(_target
   silo server)
   add_executable(${_target} "./cpp/${_target}.cpp")
@@ -62,6 +71,7 @@ foreach(_target
     grpc_proto
     differentialprivacy
     global
+    grid
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF})
