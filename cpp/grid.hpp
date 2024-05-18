@@ -3,22 +3,22 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cmath>
 #include <vector>
 #include <iostream>
 #include <chrono>
 
 #include "global.h"
+#include "differentialprivacy.h"
+
+namespace INDEX {
 
 using ICDE18::Record_t;
 using ICDE18::Circle_t;
-using ICDE18::Rectangle_t;
 using ICDE18::IntersectWithRange;
+using DIFFERENTIALPRIVACY::LaplaceMechanism;
 
-namespace index {
-
-constexpr size_t ipow(size_t base, int exp, size_t result = 1) {
+constexpr size_t ipow(size_t base, int exp, size_t result=1) {
     return exp < 1 ? result : ipow(base*base, exp/2, (exp % 2) ? result*base : result);
 }
 
@@ -26,7 +26,7 @@ constexpr size_t ipow(size_t base, int exp, size_t result = 1) {
 template<size_t K, size_t dim=2>
 class GridIndex {
 
-using Point_t = Record_t;
+using Point_t = ICDE18::Record_t;
 using Points_t = std::vector<Point_t>;
 using Range = std::pair<size_t, size_t>;
 
@@ -36,7 +36,7 @@ public:
         auto start = std::chrono::steady_clock::now();
 
         points_ptr = _points;
-        const Points_t& points = *points_ptr;
+        Points_t& points = *points_ptr;
         this->num_of_points = points.size();
 
         // dimension offsets when computing bucket ID
@@ -65,19 +65,26 @@ public:
         // insert points to buckets
         counts.fill(0);
         for (size_t i=0; i<points.size(); ++i) {
-            size_t pid = compute_id(p);
+            size_t pid = compute_id(points[i]);
             buckets[pid].emplace_back(i);
             ++counts[pid];
         }
 
         auto end = std::chrono::steady_clock::now();
         build_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        std::cout << "Build Time: " << get_build_time() << " [ms]" << std::endl;
+        std::cout << "Build Time: " << build_time << " [ms]" << std::endl;
         std::cout << "Index Size: " << index_size() << " Bytes" << std::endl;
     }
 
+    void perturb_index(double epsilon) {
+        double grid_epsilon = epsilon / ipow(K, dim);
+        for (int i=0; i<counts.size(); ++i) {
+            size_t noise = floor(LaplaceMechanism(1, grid_epsilon));
+            counts[i] += floor(noise);
+        }
+    }
 
-    Points range_query(Circle_t& circ) {
+    Points_t range_query(ICDE18::Circle_t& circ) {
         auto start = std::chrono::steady_clock::now();
 
         // transform the circle into a rectangle box
@@ -91,12 +98,12 @@ public:
         std::vector<Range> ranges;
 
         // search range on the 1-st dimension
-        ranges.emplace_back(std::make_pair(get_dim_idx(min_corner(), 0), get_dim_idx(max_corner(), 0)));
+        ranges.emplace_back(std::make_pair(get_dim_idx(min_corner, 0), get_dim_idx(max_corner, 0)));
         
         // find all intersect ranges
         for (size_t i=1; i<dim; ++i) {
-            auto start_idx = get_dim_idx(box.min_corner(), i);
-            auto end_idx = get_dim_idx(box.max_corner(), i);
+            auto start_idx = get_dim_idx(min_corner, i);
+            auto end_idx = get_dim_idx(max_corner, i);
 
             std::vector<Range> temp_ranges;
             for (auto idx=start_idx; idx<=end_idx; ++idx) {
@@ -110,16 +117,16 @@ public:
         }
 
         // Points candidates;
-        Points result;
+        Points_t result;
 
         // find candidate points
         for (auto range : ranges) {
-            auto start_idx = range.first;
-            auto end_idx = range.second;
+            size_t start_idx = range.first;
+            size_t end_idx = range.second;
 
-            for (auto idx=start_idx; idx<=end_idx; ++idx) {
+            for (size_t idx=start_idx; idx<=end_idx; ++idx) {
                 for (auto cand_idx : this->buckets[idx]) {
-                    Point p = (*points_ptr)[cand_idx];
+                    Point_t p = (*points_ptr)[cand_idx];
                     if (IntersectWithRange(p, circ)) {
                         result.emplace_back(p);
                     }
@@ -146,7 +153,7 @@ public:
         ret += this->buckets.size() * sizeof(std::vector<size_t>);       // buckets
         for (auto bucket : buckets)
             ret += bucket.size() * sizeof(size_t);
-        ret += this->count.size() * sizeof(size_t);                      // counts
+        ret += this->counts.size() * sizeof(size_t);                      // counts
         ret += dim * (3 * sizeof(double) + sizeof(size_t));              // others
 
         return ret;
@@ -154,8 +161,11 @@ public:
 
 
 private:
+    double build_time = 0;
+    double range_time = 0;
+    size_t range_count = 0;
     size_t num_of_points;
-    std::shared_ptr<Points> points_ptr;
+    std::shared_ptr<Points_t> points_ptr;
     std::array<std::vector<size_t>, ipow(K, dim)> buckets;
     std::array<size_t, ipow(K, dim)> counts;
     std::array<double, dim> mins;
@@ -164,7 +174,7 @@ private:
     std::array<size_t, dim> dim_offset;
 
     // compute the index on d-th dimension of a given point
-    inline size_t get_dim_idx(Point& p, const size_t& d) {
+    inline size_t get_dim_idx(const Point_t& p, const size_t& d) {
         double pd = (d==0) ? p.x : p.y;
 
         if (pd <= mins[d]) {
@@ -177,11 +187,11 @@ private:
     }
 
     // compute the bucket ID of a given point
-    inline size_t compute_id(Point& p) {
+    inline size_t compute_id(const Point_t& p) {
         size_t id = 0;
 
         for (size_t i=0; i<dim; ++i) {
-            auto current_idx = get_dim_idx(p, i);
+            size_t current_idx = get_dim_idx(p, i);
             id += current_idx * dim_offset[i];
         }
 

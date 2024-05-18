@@ -11,33 +11,33 @@
 
 namespace ICDE18 {
 
-inline double GetSquareDistance(const Point& a, const Point& b) {
+double GetSquareDistance(const Point& a, const Point& b) {
     double deltax = a.x()-b.x();
     double deltay = a.y()-b.y();
     return deltax*deltax + deltay*deltay;
 }
 
-inline double GetSquareDistance(const Record_t& a, const Point& b) {
+double GetSquareDistance(const Record_t& a, const Point& b) {
     double deltax = a.x-b.x();
     double deltay = a.y-b.y();
     return deltax*deltax + deltay*deltay;
 }
 
-inline double GetSquareDistance(const Record_t& a, const Record_t& b) {
+double GetSquareDistance(const Record_t& a, const Record_t& b) {
     double deltax = a.x-b.x;
     double deltay = a.y-b.y;
     return deltax*deltax + deltay*deltay;
 }
 
-inline double GetDistance(const Point& a, const Point& b) {
+double GetDistance(const Point& a, const Point& b) {
     return std::sqrt(GetSquareDistance(a, b));
 }
 
-inline double GetDistance(const Record_t& a, const Point& b) {
+double GetDistance(const Record_t& a, const Point& b) {
     return std::sqrt(GetSquareDistance(a, b));
 }
 
-inline double GetDistance(const Record_t& a, const Record_t& b) {
+double GetDistance(const Record_t& a, const Record_t& b) {
     return std::sqrt(GetSquareDistance(a, b));
 }
 

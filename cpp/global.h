@@ -10,7 +10,7 @@
 
 #include "ICDE18.grpc.pb.h"
 
-#define LOCAL_DEBUG
+//#define LOCAL_DEBUG
 
 using ICDE18::Point;
 using ICDE18::Rectangle;
@@ -49,12 +49,12 @@ struct Record_t {
 
 // process spatial basic function
 //
-inline double GetDistance(const Point& a, const Point& b);
-inline double GetDistance(const Record_t& a, const Point& b);
-inline double GetDistance(const Record_t& a, const Record_t& b);
-inline double GetSquareDistance(const Point& a, const Point& b);
-inline double GetSquareDistance(const Record_t& a, const Point& b);
-inline double GetSquareDistance(const Record_t& a, const Record_t& b);
+double GetDistance(const Point& a, const Point& b);
+double GetDistance(const Record_t& a, const Point& b);
+double GetDistance(const Record_t& a, const Record_t& b);
+double GetSquareDistance(const Point& a, const Point& b);
+double GetSquareDistance(const Record_t& a, const Point& b);
+double GetSquareDistance(const Record_t& a, const Record_t& b);
 bool IntersectWithRange(const Point& a, const Rectangle& b);
 bool IntersectWithRange(const Point& a, const Circle& b);
 bool IntersectWithRange(const Record_t& a, const Rectangle& b);

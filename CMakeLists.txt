@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.8)
 
 project(ICDE18 C CXX)
+set(CMAKE_CXX_STANDARD 17)  
+set(CMAKE_CXX_STANDARD_REQUIRED ON) 
 
 include(./common.cmake)
 
 get_filename_component(icde_proto "./proto/ICDE18.proto" ABSOLUTE)
 get_filename_component(icde_proto_path "${icde_proto}" PATH)
-set(CMAKE_EXE_LINKER_FLAGS "-static")
+#set(CMAKE_EXE_LINKER_FLAGS "-static") ## enable this, program has segmentation fault
 
 #compile proto file
 set(icde_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/ICDE18.pb.cc")
@@ -51,27 +53,29 @@ add_library(global
   "./cpp/global.cpp")
 
 target_link_libraries(global
+  grpc_proto
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
-  add_library(grid
-  "./cpp/grid.h"
-  "./cpp/grid.cpp")
+add_library(grid
+  "./cpp/grid.hpp")
 
 target_link_libraries(grid
+  grpc_proto
+  global
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
 foreach(_target
-  silo server)
+  silo server test)
   add_executable(${_target} "./cpp/${_target}.cpp")
   target_link_libraries(${_target}
-    grpc_proto
-    differentialprivacy
-    global
-    grid
+  grpc_proto
+  differentialprivacy
+  global
+  grid
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF})
