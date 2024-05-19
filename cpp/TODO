@@ -1,10 +1,13 @@
 
 // step1. create spatial index: grid index
 // step2. add laplace noise in each grid
-
-
 // step3. each silo send the grid index to server
 // step4. server computes the intersected grids and send their IDs to each silo
+// step5. silo sends back the record in each grid based on the perturbation.
+// step6. server checks whether the records satisfies the query range, record recall and precision.
+
+
+===== extension
 // step5. server sends the encrpted query point and radius to the server
 // step6. silo computes the encrpted distance, and put it into a polynoimal term, along with the radius
 // step7. silo sends them to the server, server decrypts, filter, and send them back.

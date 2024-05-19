@@ -11,62 +11,62 @@
 
 namespace ICDE18 {
 
-double GetSquareDistance(const Point& a, const Point& b) {
-    double deltax = a.x()-b.x();
-    double deltay = a.y()-b.y();
+float GetSquareDistance(const Point& a, const Point& b) {
+    float deltax = a.x()-b.x();
+    float deltay = a.y()-b.y();
     return deltax*deltax + deltay*deltay;
 }
 
-double GetSquareDistance(const Record_t& a, const Point& b) {
-    double deltax = a.x-b.x();
-    double deltay = a.y-b.y();
+float GetSquareDistance(const Record_t& a, const Point& b) {
+    float deltax = a.x-b.x();
+    float deltay = a.y-b.y();
     return deltax*deltax + deltay*deltay;
 }
 
-double GetSquareDistance(const Record_t& a, const Record_t& b) {
-    double deltax = a.x-b.x;
-    double deltay = a.y-b.y;
+float GetSquareDistance(const Record_t& a, const Record_t& b) {
+    float deltax = a.x-b.x;
+    float deltay = a.y-b.y;
     return deltax*deltax + deltay*deltay;
 }
 
-double GetDistance(const Point& a, const Point& b) {
+float GetDistance(const Point& a, const Point& b) {
     return std::sqrt(GetSquareDistance(a, b));
 }
 
-double GetDistance(const Record_t& a, const Point& b) {
+float GetDistance(const Record_t& a, const Point& b) {
     return std::sqrt(GetSquareDistance(a, b));
 }
 
-double GetDistance(const Record_t& a, const Record_t& b) {
+float GetDistance(const Record_t& a, const Record_t& b) {
     return std::sqrt(GetSquareDistance(a, b));
 }
 
 bool IntersectWithRange(const Point& a, const Rectangle& b) {
-    double ax = a.x(), ay = a.y();
+    float ax = a.x(), ay = a.y();
     return (b.lo().x()<=ax && ax<=b.hi().x()) && (b.lo().y()<=ay && ay<=b.hi().y());
 }
 
 bool IntersectWithRange(const Point& a, const Circle& b) {
-    double rad = b.rad();
+    float rad = b.rad();
     return GetSquareDistance(a, b.center()) <= rad*rad;
 }
 
 bool IntersectWithRange(const Record_t& a, const Rectangle& b) {
-    double ax = a.x, ay = a.y;
+    float ax = a.x, ay = a.y;
     return (b.lo().x()<=ax && ax<=b.hi().x()) && (b.lo().y()<=ay && ay<=b.hi().y());
 }
 
 bool IntersectWithRange(const Record_t& a, const Circle& b) {
-    double rad = b.rad();
+    float rad = b.rad();
     return GetSquareDistance(a, b.center()) <= rad*rad;
 }
 
 bool IntersectWithRange(const Record_t& a, const Rectangle_t& b) {
-    double ax = a.x, ay = a.y;
-    double b_lo_x = b.x - b.dx;
-    double b_hi_x = b.x + b.dx;
-    double b_lo_y = b.y - b.dy;
-    double b_hi_y = b.y + b.dy;
+    float ax = a.x, ay = a.y;
+    float b_lo_x = b.x - b.dx;
+    float b_hi_x = b.x + b.dx;
+    float b_lo_y = b.y - b.dy;
+    float b_hi_y = b.y + b.dy;
     return (b_lo_x<=ax && ax<=b_hi_x) && (b_lo_y<=ay && ay<=b_hi_y);
 }
 
@@ -77,15 +77,15 @@ bool IntersectWithRange(const Record_t& a, const Circle_t& b) {
     return GetSquareDistance(a, center) <= b.rad*b.rad;
 }
 
-double CommRangeQuery(const Rectangle& a) {
+float CommRangeQuery(const Rectangle& a) {
     return a.ByteSizeLong();
 }
 
-double CommRangeQuery(const Circle& a) {
+float CommRangeQuery(const Circle& a) {
     return a.ByteSizeLong();
 }
 
-double CommQueryAnswer(const std::vector<Record>& a) {
+float CommQueryAnswer(const std::vector<Record>& a) {
     if (a.size() == 0)
         return sizeof(a);
     else
@@ -93,7 +93,7 @@ double CommQueryAnswer(const std::vector<Record>& a) {
 }
 
 
-double CommQueryAnswer(const std::vector<Record_t>& a) {
+float CommQueryAnswer(const std::vector<Record_t>& a) {
     Record tmp;
     Point p;
 
@@ -108,7 +108,7 @@ double CommQueryAnswer(const std::vector<Record_t>& a) {
         return sizeof(a) + a.size() * tmp.ByteSizeLong();
 }
 
-double CommQueryAnswer(const RecordSummary& a) {
+float CommQueryAnswer(const RecordSummary& a) {
     return a.ByteSizeLong();
 }
 
@@ -224,7 +224,7 @@ void GetInputData(const std::string& fileName, std::vector<Record_t>& recordVect
     for (int i=0; i<n; ++i) {
         fin >> recordVector[i].ID >> recordVector[i].x >> recordVector[i].y; 
         #ifdef LOCAL_DEBUG
-        printf("Record #%d: ID=%d, location=(%.2lf, %.2lf)\n", i+1, recordVector[i].ID, recordVector[i].x, recordVector[i].y);
+        printf("Record #%d: ID=%d, location=(%.2f, %.2f)\n", i+1, recordVector[i].ID, recordVector[i].x, recordVector[i].y);
         #endif
     }
     fin.close();

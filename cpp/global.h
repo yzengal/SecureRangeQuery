@@ -10,7 +10,8 @@
 
 #include "ICDE18.grpc.pb.h"
 
-//#define LOCAL_DEBUG
+#define LOCAL_DEBUG
+#define GRID_NUM_PER_SIDE 5
 
 using ICDE18::Point;
 using ICDE18::Rectangle;
@@ -47,16 +48,17 @@ struct Circle_t {
 struct Record_t {
     int ID;
     float x, y;
+    Record_t(int _ID, float _x, float _y): ID(_ID), x(_x), y(_y) {}
 };
 
 // process spatial basic function
 //
-double GetDistance(const Point& a, const Point& b);
-double GetDistance(const Record_t& a, const Point& b);
-double GetDistance(const Record_t& a, const Record_t& b);
-double GetSquareDistance(const Point& a, const Point& b);
-double GetSquareDistance(const Record_t& a, const Point& b);
-double GetSquareDistance(const Record_t& a, const Record_t& b);
+float GetDistance(const Point& a, const Point& b);
+float GetDistance(const Record_t& a, const Point& b);
+float GetDistance(const Record_t& a, const Record_t& b);
+float GetSquareDistance(const Point& a, const Point& b);
+float GetSquareDistance(const Record_t& a, const Point& b);
+float GetSquareDistance(const Record_t& a, const Record_t& b);
 bool IntersectWithRange(const Point& a, const Rectangle& b);
 bool IntersectWithRange(const Point& a, const Circle& b);
 bool IntersectWithRange(const Record_t& a, const Rectangle& b);
@@ -67,7 +69,7 @@ bool IntersectWithRange(const Record_t& a, const Circle_t& b);
 
 // process vector basic function
 // void CopyFromVector(IntVector& des, const std::vector<int>& des);
-// void CopyFromVector(FloatVector& des, const std::vector<double>& des);
+// void CopyFromVector(FloatVector& des, const std::vector<float>& des);
 template <typename T>
 void CopyFromVector(IntVector& des, const std::vector<T>& src) {
     des.set_size(des.size());
@@ -84,6 +86,20 @@ void CopyFromVector(FloatVector& des, const std::vector<T>& src) {
     for (T v : src) {
         des.add_values((float) v);
     }    
+}
+
+template <typename T>
+void CopyToVector(std::vector<T>& src, const IntVector& des) {
+    src.clear(des.size());
+    for (size_t i=0,sz=des.size(); i<sz; ++i)
+        src.emplace_back((T) des.values(i));
+}
+
+template <typename T>
+void CopyToVector(std::vector<T>& src, const FloatVector& des) {
+    src.clear(des.size());
+    for (size_t i=0,sz=des.size(); i<sz; ++i)
+        src.emplace_back((T) des.values(i)); 
 }
 
 // process read and write file
@@ -104,11 +120,11 @@ void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_ad
 // process communication cost
 //
 //
-double CommRangeQuery(const Rectangle& a);
-double CommRangeQuery(const Circle& a);
-double CommQueryAnswer(const std::vector<Record_t>& a);
-double CommQueryAnswer(const std::vector<Record>& a);
-double CommQueryAnswer(const RecordSummary& a);
+float CommRangeQuery(const Rectangle& a);
+float CommRangeQuery(const Circle& a);
+float CommQueryAnswer(const std::vector<Record_t>& a);
+float CommQueryAnswer(const std::vector<Record>& a);
+float CommQueryAnswer(const RecordSummary& a);
 
 class QueryLogger {
 public:
@@ -132,15 +148,15 @@ public:
         endTime = std::chrono::steady_clock::now(); 
     }
 
-    void LogAddComm(double _queryComm=0.0f) {
+    void LogAddComm(float _queryComm=0.0f) {
         queryComm += _queryComm;
     }
 
-    void LogOneQuery(double _queryComm=0.0f) {
+    void LogOneQuery(float _queryComm=0.0f) {
         LogAddComm(_queryComm);
 
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        double _queryTime = duration.count();
+        float _queryTime = duration.count();
 
         queryNum += 1;
         queryTime += _queryTime;
@@ -149,18 +165,18 @@ public:
     }
 
     void Print() {
-        double AvgQueryTime = (queryNum==0) ? 0 : (queryTime/queryNum);
-        double AvgQueryComm = (queryNum==0) ? 0 : (queryComm/queryNum);
+        float AvgQueryTime = (queryNum==0) ? 0 : (queryTime/queryNum);
+        float AvgQueryComm = (queryNum==0) ? 0 : (queryComm/queryNum);
         printf("\n\n-------------- Query Log --------------\n");
-        printf("QueryNum = %d, AvgQueryTime = %.4lfms, AvgQueryComm = %.4lfbytes\n\n", queryNum, AvgQueryTime, AvgQueryComm);
+        printf("QueryNum = %d, AvgQueryTime = %.2fms, AvgQueryComm = %.2fbytes\n\n", queryNum, AvgQueryTime, AvgQueryComm);
         fflush(stdout);
     }
 
 private:
     std::chrono::steady_clock::time_point startTime, endTime;
     int queryNum;
-    double queryTime;
-    double queryComm;
+    float queryTime;
+    float queryComm;
 };
 
 }  // namespace ICDE18

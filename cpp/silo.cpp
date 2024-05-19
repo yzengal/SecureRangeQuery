@@ -20,8 +20,6 @@
 #include "global.h"
 #include "grid.hpp"
 
-#definf GRID_NUM_PER_SIDE 5
-
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -60,7 +58,7 @@ Record MakeRecord(const Record_t& r) {
 
 class Silo {
 public:
-    Silo(const int _siloID=0, const std::string& fileName="", const double _epsilon=0.5) : siloID(_siloID) {
+    Silo(const int _siloID=0, const std::string& fileName="", const float _epsilon=0.5) : siloID(_siloID) {
         SetDataRecord(fileName);
         SetGridIndex(_epsilon);
     }
@@ -176,33 +174,73 @@ public:
     }
 
     size_t GetK() {
-        return grid_ptr->GetK();
+        return m_grid_ptr->GetK();
     }
 
-    void GetMins(std::vector<double>& _mins) {
-        grid_ptr->GetMins(_mins);
+    void GetMins(std::vector<float>& _mins) {
+        m_grid_ptr->GetMins(_mins);
     }
 
-    void GetMaxs(std::vector<double>& _maxs) {
-        grid_ptr->GetMaxs(_maxs);
+    void GetMaxs(std::vector<float>& _maxs) {
+        m_grid_ptr->GetMaxs(_maxs);
     }
 
-    void GetWidths(std::vector<double>& _widths) {
-        grid_ptr->GetWidths(_widths):
+    void GetWidths(std::vector<float>& _widths) {
+        m_grid_ptr->GetWidths(_widths):
+    }
+
+    void SetFileterGridIDs(const std::vector<size_t>& grid_list) {
+        m_grid_id_list.clear();
+        m_grid_id_list.insert(m_grid_id_list.end(), grid_list.begin(), grid_list.end());
+    }
+
+    void GetFilterGridRecord(std::vector<Record_t>& ans) {
+        ans.clear();
+
+        for (size_t gid : m_grid_id_list) {
+            size_t perturb_count = m_grid_ptr->get_index_perturb_count(gid);
+            size_t true_count = m_grid_ptr->get_index_true_count(gid);
+            #ifdef LOCAL_DEBUG
+            assert(perturb_count != 0);
+            #endif
+            if (perturb_count < 0) {
+                perturb_count = -perturb_count; // equivalent to overflow array
+            }
+            
+            std::vector<Record_t> record_list_tmp;
+            m_grid_ptr->get_index_record(gid, record_list_tmp);
+            
+            if (perturb_count < true_count) {// randomly remove some record
+                std::shuffle(record_list_tmp.begin(), record_list_tmp.end());
+                record_list_tmp.resize(perturb_count);
+            } else if (perturb_count > true_count) {
+                perturb_count dummy_record_tmp(-1, -1e8, -1e8);
+                for (size_t i=true_count; i<perturb_count; ++i) {
+                    record_list_tmp.emplace_back(dummy_record_tmp);
+                }
+            }
+            #ifdef LOCAL_DEBUG
+            assert(perturb_count == record_list_tmp.size());
+            #endif
+
+            ans.insert(ans.end(), record_list_tmp.begin(), record_list_tmp.end());
+        }
+        std::shuffle(ans.begin(), ans.end());
     }
 
 private:
-    void SetGridIndex(double epsilon) {
+    void SetGridIndex(float epsilon) {
         std::ushared_ptr<std::vector<ICDE18::Record_t>> data_ptr = std::make_shared<std::vector<ICDE18::Record_t>>(this->data);
-        grid_ptr = std::make_unique<GridIndex<5>>(data_ptr);
-        grid_ptr->perturb_index(epsilon);
+        m_grid_ptr = std::make_unique<GridIndex<5>>(data_ptr);
+        m_grid_ptr->perturb_index(epsilon);
     }
 
     int siloID;
     QueryLogger log;
     std::vector<Record_t> data;
+    std::vector<size_t> m_grid_id_list;
     std::string siloIP;
-    std::unique_ptr<GridIndex<GRID_NUM_PER_SIDE>> grid_ptr;
+    std::unique_ptr<GridIndex<GRID_NUM_PER_SIDE>> m_grid_ptr;
 };
 
 class FedQueryServiceImpl final : public FedQueryService::Service {
@@ -233,7 +271,7 @@ public:
     }
 
 
-    Status PublishGridIndex(ServerContext* context,
+    Status GetGridIndex(ServerContext* context,
                         const Empty* request,
                         GridIndexCounts* grid_counts) override {
         #ifdef LOCAL_DEBUG
@@ -241,15 +279,15 @@ public:
         #endif
 
         FloatVector mins, maxs, widths;
-        std::vector<double> _mins, _maxs, _widths;
+        std::vector<float> _mins, _maxs, _widths;
         m_silo_GetMins(_mins);
         m_silo_GetMins(_maxs);
         m_silo_GetMins(_widths);
 
         assert(_mins.size()==_maxs.size() && _widths.size()==_max.size());
-        CopyFromVector<double>(minxs, _mins);
-        CopyFromVector<double>(maxs, _maxs);
-        CopyFromVector<double>(widths, _widths);
+        CopyFromVector<float>(minxs, _mins);
+        CopyFromVector<float>(maxs, _maxs);
+        CopyFromVector<float>(widths, _widths);
 
         std::vector<size_t> _counts;
         grid.publish_index_counts(_counts);
@@ -268,11 +306,50 @@ public:
         #ifdef LOCAL_DEBUG
         auto endTime = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        double runTime = duration.count();
-        printf("Silo %d: PublishGridIndex, index.length()=%d, comm=%.0lf, time=%.2lf\n", 
-                m_silo->GetSiloID(), grid_counts->K(), (double)grid_counts->ByteSizeLong(), runTime);
+        float runTime = duration.count();
+        printf("Silo %d: PublishGridIndex, index.length()=%d, comm=%.0lf, time=%.2f\n", 
+                m_silo->GetSiloID(), grid_counts->K(), (float)grid_counts->ByteSizeLong(), runTime);
         fflush(stdout);
         #endif
+
+        return Status::OK;
+    }
+
+    Status SendFilterGridIndex(ServerContext* context, const IncVector* request, 
+        Empty* response) override {
+        std::vector<size_t> grid_ids_list;
+
+        for (size_t i=0, sz=IncVector->size(); i<sz; ++i) {
+            grid_ids_list.emplace_back(IncVector->values(i));
+        }
+        m_silo->SetFileterGridIDs(grid_ids_list);
+        
+        log.LogAddComm(request->ByteSizeLong());
+
+        return Status::OK;
+    }
+
+    Status GetFilterGridRecord(ServerContext* context,
+                        const Empty* circle,
+                        ServerWriter<Record>* writer) override {
+        Record record;
+        m_RecordVector.clear();
+
+        #ifdef LOCAL_DEBUG
+        printf("Silo %d: GetFilterGridRecord\n", m_silo->GetSiloID());
+        fflush(stdout);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        #endif
+
+        std::vector<Record_t> ans;
+        m_silo->GetFilterGridRecord(ans);
+        for (auto record_ : ans) {
+           record = MakeRecord(record_);
+           m_RecordVector.emplace_back(record_);
+           writer->Write(record);
+        }
+
+        log.LogOneQuery(record.ByteSizeLong() * ans.size());
 
         return Status::OK;
     }
@@ -285,7 +362,7 @@ public:
         m_RecordVector.clear();
 
         #ifdef LOCAL_DEBUG
-        printf("Silo %d: CircleRangeQuery, center=(%.2lf,%.2lf), rad=%.2lf\n", 
+        printf("Silo %d: CircleRangeQuery, center=(%.2f,%.2f), rad=%.2f\n", 
                 m_silo->GetSiloID(), circle->center().x(), circle->center().y(), circle->rad());
         fflush(stdout);
         std::this_thread::sleep_for(std::chrono::seconds(1));

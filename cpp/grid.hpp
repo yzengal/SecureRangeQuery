@@ -45,11 +45,11 @@ public:
         }
 
         // boundaries of each dimension
-        std::fill(mins.begin(), mins.end(), std::numeric_limits<double>::max());
-        std::fill(maxs.begin(), maxs.end(), std::numeric_limits<double>::min());
+        std::fill(mins.begin(), mins.end(), std::numeric_limits<float>::max());
+        std::fill(maxs.begin(), maxs.end(), std::numeric_limits<float>::min());
 
         for (int i=0; i<dim; ++i) {
-            double value;
+            float value;
             for (auto& p : points) {
                 value = (i==0) ? p.x : p.y;
                 mins[i] = std::min(value, mins[i]);
@@ -76,12 +76,25 @@ public:
         std::cout << "Index Size: " << index_size() << " Bytes" << std::endl;
     }
 
-    void perturb_index_counts(double epsilon) {
-        double grid_epsilon = epsilon / ipow(K, dim);
+    void perturb_index_counts(float epsilon) {
+        float grid_epsilon = epsilon / ipow(K, dim);
         for (int i=0; i<counts.size(); ++i) {
             size_t noise = floor(LaplaceMechanism(1, grid_epsilon));
             counts[i] += floor(noise);
         }
+    }
+
+    size_t get_index_perturb_count(const size_t gid) {
+        return counts[gid];
+    }
+
+    size_t get_index_true_count(const size_t gid) {
+        return buckets[gid].size();
+    }
+
+    void get_index_record(const size_t gid, std::vector<Record_t>& data) {
+        data.clear();
+        data.insert(data.end(), buckets[gid].begin(), buckets[gid].end());
     }
 
     void publish_index_counts(std::vector<size_t>& _cnts) {
@@ -151,17 +164,17 @@ public:
         return K;
     }
 
-    void GetMins(std::vector<double>& _mins) {
+    void GetMins(std::vector<float>& _mins) {
         _mins.clear();
         _mins.insert(_mins.end(), this->mins.begin(), this->mins.end());
     }
 
-    void GetMaxs(std::vector<double>& _maxs) {
+    void GetMaxs(std::vector<float>& _maxs) {
         _maxs.clear();
         _maxs.insert(_maxs.end(), this->maxs.begin(), this->maxs.end());
     }
 
-    void GetWidths(std::vector<double>& _widths) {
+    void GetWidths(std::vector<float>& _widths) {
         _widths.clear();
         _widths.insert(_widths.end(), this->widths.begin(), this->widths.end());
     }
@@ -179,28 +192,28 @@ public:
         for (auto bucket : buckets)
             ret += bucket.size() * sizeof(size_t);
         ret += this->counts.size() * sizeof(size_t);                      // counts
-        ret += dim * (3 * sizeof(double) + sizeof(size_t));              // others
+        ret += dim * (3 * sizeof(float) + sizeof(size_t));              // others
 
         return ret;
     }
 
 
 private:
-    double build_time = 0;
-    double range_time = 0;
+    float build_time = 0;
+    float range_time = 0;
     size_t range_count = 0;
     size_t num_of_points;
     std::shared_ptr<Points_t> points_ptr;
     std::array<std::vector<size_t>, ipow(K, dim)> buckets;
     std::array<size_t, ipow(K, dim)> counts;
-    std::array<double, dim> mins;
-    std::array<double, dim> maxs;
-    std::array<double, dim> widths;
+    std::array<float, dim> mins;
+    std::array<float, dim> maxs;
+    std::array<float, dim> widths;
     std::array<size_t, dim> dim_offset;
 
     // compute the index on d-th dimension of a given point
     inline size_t get_dim_idx(const Point_t& p, const size_t& d) {
-        double pd = (d==0) ? p.x : p.y;
+        float pd = (d==0) ? p.x : p.y;
 
         if (pd <= mins[d]) {
             return 0;

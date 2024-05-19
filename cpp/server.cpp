@@ -100,7 +100,7 @@ public:
   }
 
   void GetLocalRecord(std::vector<ICDE18::Record>& res) {
-    res = record_list_;
+    res = m_record_list;
   }
 
   bool GetQueryAnswer(const Rectangle_t& _rect) {
@@ -110,32 +110,34 @@ public:
     Record record;
     ClientContext context;
 
-    printf("Looking for data records between (%.2lf, %.2lf) and (%.2lf, %.2lf)\n",
+    #ifdef LOCAL_DEBUG
+    printf("Looking for data records between (%.2f, %.2f) and (%.2f, %.2f)\n",
             rect.lo().x(), rect.lo().y(), rect.hi().x(), rect.hi().y());
     fflush(stdout);
-
+    #endif
 
     std::unique_ptr<ClientReader<Record> > reader(
         stub_->AnswerRectangleRangeQuery(&context, rect));
-    record_list_.clear();
+    m_record_list.clear();
     while (reader->Read(&record)) {
-      record_list_.emplace_back(record);
+      m_record_list.emplace_back(record);
     }
     Status status = reader->Finish();
     if (status.ok()) {
       printf("gRPC [AnswerRectangleRangeQuery] succeeded.\n");
     } else {
       printf("gRPC [AnswerRectangleRangeQuery] failed.\n");
-      exit(0);
+      exit(-1);
     }
 
     log.SetEndTimer();
-    log.LogOneQuery(CommQueryAnswer(record_list_));
+    queryComm += CommQueryAnswer(m_record_list);
+    log.LogOneQuery(CommQueryAnswer(m_record_list));
 
-    printf("There are %d objects in the query range:\n", (int)record_list_.size());
-    for (auto record : record_list_) {
+    printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+    for (auto record : m_record_list) {
       if (record.has_p()) {
-        printf("  ID = %d, location = (%.2lf,%.2lf)\n", 
+        printf("  ID = %d, location = (%.2f,%.2f)\n", 
                 record.id(), record.p().x(), record.p().y());
       } else {
         printf("Data silo returns incomplete record.\n");
@@ -153,15 +155,17 @@ public:
     Record record;
     ClientContext context;
 
-    printf("Looking for data records within center(%.2lf, %.2lf) and radius %.2lf\n",
+    #ifdef LOCAL_DEBUG
+    printf("Looking for data records within center(%.2f, %.2f) and radius %.2f\n",
             circ.center().x(), circ.center().y(), circ.rad());
     fflush(stdout);
+    #endif
 
     std::unique_ptr<ClientReader<Record> > reader(
         stub_->AnswerCircleRangeQuery(&context, circ));
-    record_list_.clear();
+    m_record_list.clear();
     while (reader->Read(&record)) {
-      record_list_.emplace_back(record);
+      m_record_list.emplace_back(record);
     }
     Status status = reader->Finish();
     if (status.ok()) {
@@ -170,17 +174,18 @@ public:
     } else {
       printf("gRPC [AnswerCircleRangeQuery] failed.\n");
       fflush(stdout);
-      exit(0);
+      exit(-1);
     }
 
     log.SetEndTimer();
-    log.LogOneQuery(CommQueryAnswer(record_list_));
+    queryComm += CommQueryAnswer(m_record_list);
+    log.LogOneQuery(CommQueryAnswer(m_record_list));
 
     #ifdef LOCAL_DEBUG
-    printf("There are %d objects in the query range:\n", (int)record_list_.size());
-    for (auto record : record_list_) {
+    printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+    for (auto record : m_record_list) {
       if (record.has_p()) {
-        printf("  ID = %d, location = (%.2lf,%.2lf)\n", 
+        printf("  ID = %d, location = (%.2f,%.2f)\n", 
                 record.id(), record.p().x(), record.p().y());
       } else {
         printf("Data silo returns incomplete record.\n");
@@ -192,50 +197,172 @@ public:
     return true;
   }
 
-  bool GetGridIndexCount() {
+  void GetGridIndex() {
     ClientContext context;
     Empty request;
     IntVector response;
   
-    Status Res = stub_->sumRequest(&context, request, &response); 
+    Status Res = stub_->GetGridIndex(&context, request, &response); 
     if (status.ok()) {
-      printf("gRPC [GetGridIndexCount] succeeded.\n");
+      printf("gRPC [GetGridIndex] succeeded.\n");
       fflush(stdout);
     } else {
-      printf("gRPC [GetGridIndexCount] failed.\n");
+      printf("gRPC [GetGridIndex] failed.\n");
       fflush(stdout);
-      exit(0);
+      exit(-1);
     }
 
+    queryComm += response.ByteSizeLong();
     log.LogAddComm(response.ByteSizeLong());
-
-    m_GridIndexCounts.resize(response.size());
-    for (int i=0,sz=response.size(); i<sz; ++i) {
-      m_GridIndexCounts.emplace_back(response.values(i));
-    }
+    
+    m_K = response.K();
+    CopyToVector<float>(m_mins, response.mins());
+    CopyToVector<float>(m_maxs, response.maxs());
+    CopyToVector<float>(m_widths, response.widths());
+    CopyToVector<float>(m_counts, response.counts());
 
     #ifdef LOCAL_DEBUG
-    printf("There are %d grid in the grid index:\n", (int)response.size());
+    printf("There are %d grid in the grid index (K = %d):\n", (int)m_counts.size(), m_K);
     for (int i=0,sz=m_GridIndexCounts.size(); i<sz; ++i) {
       if (i == 0)
-        printf("  %d", m_GridIndexCounts[i]);
+        printf("  %d", m_counts[i]);
       else
-        printf(", %d", m_GridIndexCounts[i]);
+        printf(", %d", m_counts[i]);
     }
     putchar('\n');
     fflush(stdout);
     #endif
+  }
 
-    return true;
+  void SendFilterGridIndex(const Circle_t& _circ) {
+    ClientContext context;
+    IntVector request;
+    Empty response;
+    size_t request_sz = 0;
+
+    for (size_t i=0, sz=m_counts.size(); i<sz; ++i) {
+      if (!this->GridIntersectCircle(i, _circ))
+        continue;
+      // check whether the grid intersects with the circle range
+      if (m_counts[i] != 0) {
+        ++request_sz;
+        request.add_values(i);
+      }
+    }
+    request.set_size(request_sz);
+
+    Status Res = stub_->SendFilterGridIndex(&context, request, &response); 
+    if (status.ok()) {
+      printf("gRPC [SendFilterGridIndex] succeeded.\n");
+      fflush(stdout);
+    } else {
+      printf("gRPC [SendFilterGridIndex] failed.\n");
+      fflush(stdout);
+      exit(-1);
+    }
+
+    queryComm += request.ByteSizeLong();
+    log.LogAddComm(request.ByteSizeLong());
+  }
+
+  float GetQueryComm() {
+    return queryComm;
+  }
+
+  float InitQueryComm(float init_value = 0.0f) {
+    queryComm = init_value;
+  }
+
+  void GetFilterGridRecord() {
+    m_record_list.clear();
+
+    Record cand_record;
+    ClientContext context;
+    Empty request;
+
+    std::unique_ptr<ClientReader<Record> > reader(
+        stub_->GetFilterGridRecord(&context, request));
+    while (reader->Read(&cand_record)) {
+      m_record_list.emplace_back(cand_record);
+    }
+    Status status = reader->Finish();
+    if (status.ok()) {
+      printf("gRPC [GetFilterGridRecord] succeeded.\n");
+      fflush(stdout);
+    } else {
+      printf("gRPC [GetFilterGridRecord] failed.\n");
+      fflush(stdout);
+      exit(-1);
+    }
+
+    queryComm += CommQueryAnswer(m_record_list);
+    log.LogAddComm(CommQueryAnswer(m_record_list));
+
+    #ifdef LOCAL_DEBUG
+    printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+    for (auto record : m_record_list) {
+      if (record.has_p()) {
+        printf("  ID = %d, location = (%.2f,%.2f)\n", 
+                record.id(), record.p().x(), record.p().y());
+      } else {
+        printf("Data silo returns incomplete record.\n");
+      }
+    }
+    fflush(stdout);
+    #endif   
+  }
+
+  void VerifyGridRecord(const Circle_t& circ, std::vector<ICDE18::Record_t>& res_record_list) {
+    res_record_list.clear();
+    for (auto record : m_record_list) {
+      if (!record.has_p()) {
+        continue;
+      }
+      if (record.id() < 0) {
+        continue;
+      }
+      Record_t record_tmp(-1, record.p().x(), record.p().y());
+      if (ICDE18::IntersectWithRange(record_tmp, circ)) {
+        res_record_list.emplace_back(record);
+      }
+    }
   }
 
 private:
+  bool GridIntersectCircle(const size_t& gid, const Circle_t& circ) {
+    size_t idx_x = gid % this->m_K;
+    size_t idx_y = gid / this->m_K;
+
+    float lo_x = m_mins[0] + idx_x * this->m_widths[0];
+    float hi_x = lo_x + this->m_widths[0];
+    float lo_y = m_mins[1] + idx_y * this->m_widths[1];
+    float hi_y = lo_y + this->m_widths[1];
+
+    // check if the circle center is inside the rectangle;
+    if (lo_x<=circ.x && circ.x<=hi_x && lo_y<=circ.y && circ.y<=hi_y) {
+      return true;
+    } 
+
+    // check if any corner of the rectangle is inside the circle
+    const int temporal_record_id = -1;
+    if (ICDE18::IntersectWithRange(Record_t(temporal_record_id, lo_x, lo_y), circ) && 
+        ICDE18::IntersectWithRange(Record_t(temporal_record_id, lo_x, hi_y), circ) &&
+        ICDE18::IntersectWithRange(Record_t(temporal_record_id, hi_x, lo_y), circ) &&
+        ICDE18::IntersectWithRange(Record_t(temporal_record_id, hi_x, hi_y), circ) ) {
+      return true;
+    }
+
+    return false;
+  }
+
   std::unique_ptr<FedQueryService::Stub> stub_;
-  std::vector<ICDE18::Record> record_list_;
-  std::vector<size_t>> m_GridIndexCounts;
+  std::vector<ICDE18::Record> m_record_list;
+  std::vector<size_t> m_counts;
+  std::vector<float> m_mins, m_maxs, m_widths;
   QueryLogger log;
-  int serverID;
+  int serverID, m_K;
   std::string IPAddress;
+  float queryComm = 0;
 };
 
 class FedQueryServiceServer {
@@ -271,7 +398,7 @@ public:
 
     SetCircleQuery(fileName, circles);
     for (auto circ : circles) {
-      GetQueryAnswer(circ);
+      GetQueryAnswer_byGridIndex(circ);
     }
 
     log.Print();
@@ -283,22 +410,89 @@ private:
     m_ServerToSilos[siloID]->GetQueryAnswer(circ);
   }
 
-  void _localGetGridIndexCount(int siloID) {
-    m_ServerToSilos[siloID]->GetQueryAnswer(circ);
+  void _localGetGridIndex(int siloID) {
+    m_ServerToSilos[siloID]->GetGridIndex();
   }
 
-  void GetGridIndexCount() {
+  void _localSendFilterGridIndex(int siloID, const Circle_t& circ) {
+    m_ServerToSilos[siloID]->SendFilterGridIndex(circ);
+  }
+
+  void _localGetFilterGridRecord() {
+     m_ServerToSilos[siloID]->GetFilterGridRecord();
+  }
+
+  void GetGridIndex() {
     std::vector<std::thread> thread_list(m_ServerToSilos.size());
 
-    // execute local range query
     for (int i=0; i<m_ServerToSilos.size(); ++i) {
-      thread_list[i] = std::thread(&FedQueryServiceServer::_localGetGridIndexCount, this, i);
+      thread_list[i] = std::thread(&FedQueryServiceServer::_localGetGridIndex, this, i);
     }
     for (int i=0; i<m_ServerToSilos.size(); ++i) {
       thread_list[i].join();
     }
+  }
 
+  void SendFilterGridIndex(const Circle_t& circ) {
+    std::vector<std::thread> thread_list(m_ServerToSilos.size());
 
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i] = std::thread(&FedQueryServiceServer::_localSendFilterGridIndex, this, i, circ);
+    }
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i].join();
+    }   
+  }
+
+  void GetFilterGridRecord() {
+    std::vector<std::thread> thread_list(m_ServerToSilos.size());
+
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i] = std::thread(&FedQueryServiceServer::_localGetFilterGridRecord, this, i);
+    }
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i].join();
+    }       
+  }
+
+  void GetQueryAnswer_byGridIndex(const Circle_t& circ) {
+    // step0. initialization
+    log.SetStartTimer();
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      m_ServerToSilos[i]->InitQueryComm();
+    }
+
+    // step1. Get Grid Index
+    GetGridIndex();
+
+    // step2. Filter Grid Index
+    SendFilterGridIndex(circ);
+
+    // step3. Receive records in the filtered grids
+    GetFilterGridRecord();
+
+    // step4. Verify the data records
+    m_record_list.clear();
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      std::vector<ICDE18::Record> record_list_tmp;
+      m_ServerToSilos[i]->VerifyGridRecord(circ, record_list_tmp);
+      m_record_list.insert(m_record_list.end(), record_list_tmp.begin(), record_list_tmp.end());
+    }
+
+    log.SetEndTimer();
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      log.LogAddComm(m_ServerToSilos[i]->GetQueryComm());
+    }
+    log.LogOneQuery(CommQueryAnswer(m_record_list));
+
+    printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+    for (auto record : m_record_list) {
+      if (record.has_p()) {
+        printf("  ID = %d, location = (%.2f,%.2f)\n", 
+                record.id(), record.p().x(), record.p().y());
+      }
+    }
+    fflush(stdout);
   }
 
   void GetQueryAnswer(const Circle_t& circ) {
@@ -315,20 +509,20 @@ private:
     }
 
     // execute secure aggregation
-    record_list_.clear();
+    m_record_list.clear();
     std::vector<ICDE18::Record> tmp_list;
     for (int i=0; i<m_ServerToSilos.size(); ++i) {
       m_ServerToSilos[i]->GetLocalRecord(tmp_list);
-      record_list_.insert(record_list_.end(), tmp_list.begin(), tmp_list.end());
+      m_record_list.insert(m_record_list.end(), tmp_list.begin(), tmp_list.end());
     }
 
     log.SetEndTimer();
-    log.LogOneQuery(CommQueryAnswer(record_list_));
+    log.LogOneQuery(CommQueryAnswer(m_record_list));
 
-    printf("There are %d objects in the query range:\n", (int)record_list_.size());
-    for (auto record : record_list_) {
+    printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+    for (auto record : m_record_list) {
       if (record.has_p()) {
-        printf("  ID = %d, location = (%.2lf,%.2lf)\n", 
+        printf("  ID = %d, location = (%.2f,%.2f)\n", 
                 record.id(), record.p().x(), record.p().y());
       }
     }
@@ -337,7 +531,7 @@ private:
 
   std::vector<std::shared_ptr<ServerToSilo>> m_ServerToSilos;
   std::vector<std::string> m_IPAddresses;
-  std::vector<ICDE18::Record> record_list_;
+  std::vector<ICDE18::Record> m_record_list;
   std::vector<std::vector<size_t>> m_GridIndexCounts;
   QueryLogger log;
 };
