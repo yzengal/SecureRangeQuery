@@ -20,6 +20,8 @@
 #include "global.h"
 #include "grid.hpp"
 
+#definf GRID_NUM_PER_SIDE 5
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -173,6 +175,22 @@ public:
         fflush(stdout);
     }
 
+    size_t GetK() {
+        return grid_ptr->GetK();
+    }
+
+    void GetMins(std::vector<double>& _mins) {
+        grid_ptr->GetMins(_mins);
+    }
+
+    void GetMaxs(std::vector<double>& _maxs) {
+        grid_ptr->GetMaxs(_maxs);
+    }
+
+    void GetWidths(std::vector<double>& _widths) {
+        grid_ptr->GetWidths(_widths):
+    }
+
 private:
     void SetGridIndex(double epsilon) {
         std::ushared_ptr<std::vector<ICDE18::Record_t>> data_ptr = std::make_shared<std::vector<ICDE18::Record_t>>(this->data);
@@ -184,7 +202,7 @@ private:
     QueryLogger log;
     std::vector<Record_t> data;
     std::string siloIP;
-    std::unique_ptr<GridIndex<5>> grid_ptr;
+    std::unique_ptr<GridIndex<GRID_NUM_PER_SIDE>> grid_ptr;
 };
 
 class FedQueryServiceImpl final : public FedQueryService::Service {
@@ -222,13 +240,28 @@ public:
         auto startTime = std::chrono::steady_clock::now();
         #endif
 
-        std::vector<size_t> counts_list;
-        grid.publish_index_counts(counts_list);
+        FloatVector mins, maxs, widths;
+        std::vector<double> _mins, _maxs, _widths;
+        m_silo_GetMins(_mins);
+        m_silo_GetMins(_maxs);
+        m_silo_GetMins(_widths);
+
+        assert(_mins.size()==_maxs.size() && _widths.size()==_max.size());
+        CopyFromVector<double>(minxs, _mins);
+        CopyFromVector<double>(maxs, _maxs);
+        CopyFromVector<double>(widths, _widths);
+
+        std::vector<size_t> _counts;
+        grid.publish_index_counts(_counts);
+        IntVector counts;
+        CopyFromVector<size_t>(counts, _counts);
         
-        grid_counts->set_size(counts_list.size());
-        grid_counts->clear_values();
-        for (auto cnt : counts_list)
-            GridIndexCounts->add_values(cnt);
+        
+        grid_counts->set_K(m_silo->GetK());
+        grid_counts->mutable_mins()->CopyFrom(mins);
+        grid_counts->mutable_maxs()->CopyFrom(maxs);
+        grid_counts->mutable_widths()->CopyFrom(widths);
+        grid_counts->mutable_counts()->CopyFrom(counts);
 
         log.LogAddComm(grid_counts->ByteSizeLong());
 

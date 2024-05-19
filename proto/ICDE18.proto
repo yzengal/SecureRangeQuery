@@ -128,7 +128,7 @@ message FloatVector {
     int32 size = 1;
 
     // The vector of the counts
-    repeated int32 values = 2;
+    repeated float values = 2;
 }
 
 messsage GridIndexCounts {
@@ -143,6 +143,9 @@ messsage GridIndexCounts {
 
     // The vector of widths 
     FloatVector widths = 4;
+
+    // The count of each grid
+    IntVector counts = 5;
 }
 
 // A RecordSummary is received in response to a federated range counting query.

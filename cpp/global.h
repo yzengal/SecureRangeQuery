@@ -19,6 +19,8 @@ using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
 using ICDE18::RecordSummary;
+using ICDE18::IntVector;
+using ICDE18::FloatVector;
 using std::chrono::system_clock;
 
 namespace ICDE18 {
@@ -61,6 +63,28 @@ bool IntersectWithRange(const Record_t& a, const Rectangle& b);
 bool IntersectWithRange(const Record_t& a, const Circle& b);
 bool IntersectWithRange(const Record_t& a, const Rectangle_t& b);
 bool IntersectWithRange(const Record_t& a, const Circle_t& b);
+
+
+// process vector basic function
+// void CopyFromVector(IntVector& des, const std::vector<int>& des);
+// void CopyFromVector(FloatVector& des, const std::vector<double>& des);
+template <typename T>
+void CopyFromVector(IntVector& des, const std::vector<T>& src) {
+    des.set_size(des.size());
+    des.clear_values();
+    for (T v : src) {
+        des.add_values((int) v);
+    }
+}
+
+template <typename T>
+void CopyFromVector(FloatVector& des, const std::vector<T>& src) {
+    des.set_size(des.size());
+    des.clear_values();
+    for (T v : src) {
+        des.add_values((float) v);
+    }    
+}
 
 // process read and write file
 //

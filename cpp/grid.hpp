@@ -147,6 +147,25 @@ public:
         return result;
     }
 
+    size_t GetK() {
+        return K;
+    }
+
+    void GetMins(std::vector<double>& _mins) {
+        _mins.clear();
+        _mins.insert(_mins.end(), this->mins.begin(), this->mins.end());
+    }
+
+    void GetMaxs(std::vector<double>& _maxs) {
+        _maxs.clear();
+        _maxs.insert(_maxs.end(), this->maxs.begin(), this->maxs.end());
+    }
+
+    void GetWidths(std::vector<double>& _widths) {
+        _widths.clear();
+        _widths.insert(_widths.end(), this->widths.begin(), this->widths.end());
+    }
+
     inline size_t count() {
         return this->num_of_points;
     }
