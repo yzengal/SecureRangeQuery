@@ -1,6 +1,21 @@
-5
-RangeQuery 0 0 1
-RangeQuery 0 0 2
-RangeQuery 0 0 5
-RangeQuery 0 0 8
-RangeQuery 0 0 10
+20
+RangeQuery -55 -11 49
+RangeQuery 21 -92 16
+RangeQuery 36 -65 33
+RangeQuery -76 18 18
+RangeQuery 85 69 38
+RangeQuery -25 79 44
+RangeQuery 50 78 11
+RangeQuery -38 -41 25
+RangeQuery 4 -35 13
+RangeQuery -24 -60 40
+RangeQuery -43 50 36
+RangeQuery -39 -24 12
+RangeQuery 55 -90 15
+RangeQuery -83 65 45
+RangeQuery 76 -68 48
+RangeQuery 80 68 28
+RangeQuery 45 -33 44
+RangeQuery 67 -49 22
+RangeQuery -24 92 16
+RangeQuery -90 74 42
