@@ -34,6 +34,9 @@ main
 silo
 server
 
+# temporay log file
+log
+
 .vscode/
 .history/
 cmake/

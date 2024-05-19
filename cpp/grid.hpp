@@ -74,13 +74,30 @@ public:
         build_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "Build Time: " << build_time << " [ms]" << std::endl;
         std::cout << "Index Size: " << index_size() << " Bytes" << std::endl;
+
+        #ifdef LOCAL_DEBUG
+        for (size_t i=0; i<counts.size(); ++i) {
+            if (i == 0)
+                printf("  %zu", counts[i]);
+            else
+                printf(", %zu", counts[i]);
+        }
+        putchar('\n');
+        fflush(stdout);
+        #endif
     }
 
     void perturb_index_counts(float epsilon) {
+        const int UPPER_BOUND = 1e2;
         float grid_epsilon = epsilon / ipow(K, dim);
         for (int i=0; i<counts.size(); ++i) {
             size_t noise = floor(LaplaceMechanism(1, grid_epsilon));
-            counts[i] += floor(noise);
+            if (fabs(noise) > UPPER_BOUND)
+                noise = UPPER_BOUND * (noise>0 ? 1:-1);
+            if (noise < 0)
+                counts[i] = noise;
+            else
+                counts[i] += noise;
         }
     }
 
@@ -94,7 +111,10 @@ public:
 
     void get_index_record(const size_t gid, std::vector<Record_t>& data) {
         data.clear();
-        data.insert(data.end(), buckets[gid].begin(), buckets[gid].end());
+        Points_t& points = *points_ptr;
+        for (size_t pid : buckets[gid])  {
+            data.emplace_back(points[pid]);
+        }
     }
 
     void publish_index_counts(std::vector<size_t>& _cnts) {

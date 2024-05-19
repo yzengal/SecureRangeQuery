@@ -217,7 +217,11 @@ public:
             
             if (perturb_count < true_count) {// randomly remove some record
                 std::shuffle(record_list_tmp.begin(), record_list_tmp.end(), rng);
-                record_list_tmp.resize(perturb_count);
+                /**
+                ** The following line is based on the original paper, 
+                ** remove some record when meeting negative noise in the grid cunt
+                **/
+                //record_list_tmp.resize(perturb_count);
             } else if (perturb_count > true_count) {
                 ICDE18::Record_t dummy_record_tmp(-1, -1e8, -1e8);
                 for (size_t i=true_count; i<perturb_count; ++i) {
@@ -283,16 +287,25 @@ public:
         auto startTime = std::chrono::steady_clock::now();
         #endif
 
-        FloatVector mins, maxs, widths;
         std::vector<float> _mins, _maxs, _widths;
         m_silo->GetMins(_mins);
         m_silo->GetMaxs(_maxs);
         m_silo->GetWidths(_widths);
 
+        #ifdef LOCAL_DEBUG
+        std::cout << _mins.size() << " " << _maxs.size() << " " << _widths.size() << std::endl;
         assert(_mins.size()==_maxs.size() && _widths.size()==_maxs.size());
+        #endif
+
+        FloatVector mins, maxs, widths;
         ICDE18::CopyFromVector<float>(mins, _mins);
         ICDE18::CopyFromVector<float>(maxs, _maxs);
         ICDE18::CopyFromVector<float>(widths, _widths);
+
+        #ifdef LOCAL_DEBUG
+        std::cout << mins.size() << " " << maxs.size() << " " << widths.size() << std::endl;
+        assert(mins.size()==maxs.size() && maxs.size()==widths.size());
+        #endif
 
         std::vector<size_t> _counts;
         m_silo->GetIndexCounts(_counts);
@@ -342,7 +355,7 @@ public:
         #ifdef LOCAL_DEBUG
         printf("Silo %d: GetFilterGridRecord\n", m_silo->GetSiloID());
         fflush(stdout);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        //std::this_thread::sleep_for(std::chrono::seconds(1));
         #endif
 
         std::vector<Record_t> ans;
@@ -354,6 +367,15 @@ public:
         }
 
         log.LogOneQuery(record.ByteSizeLong() * ans.size());
+
+        #ifdef LOCAL_DEBUG
+        printf("There are %zu objects in the query range:\n", ans.size());
+        for (auto record_ : ans) {
+            printf("  ID = %d, location = (%.2f,%.2f)\n", 
+                    record_.ID, record_.x, record_.y);
+        }
+        fflush(stdout);
+        #endif  
 
         return Status::OK;
     }

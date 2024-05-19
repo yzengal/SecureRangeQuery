@@ -137,6 +137,7 @@ public:
     queryComm += CommQueryAnswer(m_record_list);
     log.LogOneQuery(CommQueryAnswer(m_record_list));
 
+    #ifdef LOCAL_DEBUG
     printf("There are %d objects in the query range:\n", (int)m_record_list.size());
     for (auto record : m_record_list) {
       if (record.has_p()) {
@@ -147,6 +148,7 @@ public:
       }
     }
     fflush(stdout);
+    #endif
 
     return true;
   }
@@ -225,7 +227,9 @@ public:
     ICDE18::CopyToVector<size_t>(m_counts, response.counts());
 
     #ifdef LOCAL_DEBUG
-    printf("There are %d grid in the grid index (K = %d):\n", (int)m_counts.size(), m_K);
+    size_t sum_counts = 0;
+    for (auto cnt : m_counts) sum_counts += cnt;
+    printf("There are %d grid in the grid index (K = %d): %d\n", (int)m_counts.size(), m_K, (int)sum_counts);
     for (int i=0,sz=m_counts.size(); i<sz; ++i) {
       if (i == 0)
         printf("  %d", (int)m_counts[i]);
@@ -244,8 +248,8 @@ public:
     size_t request_sz = 0;
 
     for (size_t i=0, sz=m_counts.size(); i<sz; ++i) {
-      if (!this->GridIntersectCircle(i, _circ))
-        continue;
+      // if (!this->GridIntersectCircle(i, _circ))
+      //   continue;
       // check whether the grid intersects with the circle range
       if (m_counts[i] != 0) {
         ++request_sz;
@@ -396,18 +400,28 @@ public:
     GetInputQuery(fileName, rectangles);
   }
 
-  void GetCircleQueryAnswer(const std::string& fileName) {
+  void GetQueryAnswer(const std::string& fileName) {
     std::vector<Circle_t> circles;
 
     SetCircleQuery(fileName, circles);
-    for (auto circ : circles) {
-      GetQueryAnswer_byGridIndex(circ);
+    for (int i=0,sz=circles.size(); i<sz; ++i) {
+      GetQueryAnswer(circles[i]);
     }
 
     log.Print();
   }
 
+  void GetQueryAnswer_byGridIndex(const std::string& fileName) {
+    std::vector<Circle_t> circles;
 
+    SetCircleQuery(fileName, circles);
+    for (int i=0,sz=circles.size(); i<sz; ++i) {
+      m_GetQueryAnswer_byGridIndex(circles[i], i);
+    }
+
+    log.Print();
+  }
+  
 private:
   void _localRangeQuery(int siloID, const Circle_t& circ) {
     m_ServerToSilos[siloID]->GetQueryAnswer(circ);
@@ -458,7 +472,7 @@ private:
     }       
   }
 
-  void GetQueryAnswer_byGridIndex(const Circle_t& circ) {
+  void m_GetQueryAnswer_byGridIndex(const Circle_t& circ, const int qid=-1) {
     // step0. initialization
     log.SetStartTimer();
     for (int i=0; i<m_ServerToSilos.size(); ++i) {
@@ -488,13 +502,26 @@ private:
     }
     log.LogOneQuery(CommQueryAnswer(m_record_list));
 
-    printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+
+    /*
+    *   Dump the query result
+    *
+    */
+    printf("%d %d\n", qid, (int)m_record_list.size());
+    std::vector<int> ids_list_tmp;
     for (auto record : m_record_list) {
       if (record.has_p()) {
-        printf("  ID = %d, location = (%.2f,%.2f)\n", 
-                record.id(), record.p().x(), record.p().y());
+        ids_list_tmp.emplace_back(record.id());
       }
     }
+    sort(ids_list_tmp.begin(), ids_list_tmp.end());
+    for (int i=0; i<ids_list_tmp.size(); ++i) {
+      if (i == 0)
+        printf("%d", ids_list_tmp[i]);
+      else
+        printf(" %d", ids_list_tmp[i]);
+    }
+    putchar('\n');
     fflush(stdout);
   }
 
@@ -522,14 +549,32 @@ private:
     log.SetEndTimer();
     log.LogOneQuery(CommQueryAnswer(m_record_list));
 
-    printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+    #ifdef LOCAL_DEBUG
+    // printf("There are %d objects in the query range:\n", (int)m_record_list.size());
+    // for (auto record : m_record_list) {
+    //   if (record.has_p()) {
+    //     printf("  ID = %d, location = (%.2f,%.2f)\n", 
+    //             record.id(), record.p().x(), record.p().y());
+    //   }
+    // }
+    // fflush(stdout);
+
+    printf("%d\n", (int)m_record_list.size());
+    std::vector<int> ids_list_tmp;
     for (auto record : m_record_list) {
       if (record.has_p()) {
-        printf("  ID = %d, location = (%.2f,%.2f)\n", 
-                record.id(), record.p().x(), record.p().y());
+        ids_list_tmp.emplace_back(record.id());
       }
     }
+    for (int i=0; i<ids_list_tmp.size(); ++i) {
+      if (i == 0)
+        printf("%d", ids_list_tmp[i]);
+      else
+        printf(" %d", ids_list_tmp[i]);
+    }
+    putchar('\n');
     fflush(stdout);
+    #endif
   }
 
   std::vector<std::shared_ptr<ServerToSilo>> m_ServerToSilos;
@@ -551,7 +596,7 @@ int main(int argc, char** argv) {
   FedQueryServiceServer fedServer(ip_file);
 
   printf("-------------- Test Circle Range Query --------------\n");
-  fedServer.GetCircleQueryAnswer(query_file);
+  fedServer.GetQueryAnswer_byGridIndex(query_file);
 
   // printf("-------------- Test Rectangle Range Query --------------\n");
   // fedServer.GetRectangleQueryAnswer(query_file);

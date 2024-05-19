@@ -1,6 +1,11 @@
-#include "differentialprivacy.h"
+#include <bits/stdc++.h>
+using namespace std;
 
-namespace DIFFERENTIALPRIVACY {
+int sign(double u) {
+    if (u > 0) return 1;
+    if (u < 0) return 1;
+    return 0;
+}
 
 float LaplaceMechanism(float sensitivity, float epsilon) {
     std::random_device rd;
@@ -12,9 +17,8 @@ float LaplaceMechanism(float sensitivity, float epsilon) {
     std::exponential_distribution<double> distribution2(1.0/scale);
     double e1 = distribution1(generator);
     double e2 = distribution2(generator);
-    double ret = e1-e2;
-    return ret;
-    
+    return e1-e2;
+
     // float u1, u2;
     // do {
     //     u1 = uniform(generator);
@@ -29,8 +33,36 @@ float LaplaceMechanism(float sensitivity, float epsilon) {
     // if (z1 >= 0)
     //     return mean - scale * std::log(1 - z1);
     // else
-    //     return mean + scale * std::log(1 + z1);     
+    //     return mean + scale * std::log(1 + z1);    
 }
 
+int main() {
+    const int N = 5000;
+    ofstream fout;
 
-}  // namespace DIFFERENTIALPRIVACY
+    fout.open("log");
+    vector<float> vec;
+    float sensitivity = 1, epsilon = 0.001;
+
+    for (int i=0; i<N; ++i) {
+        vec.emplace_back(LaplaceMechanism(sensitivity, epsilon));
+    }
+
+    fout << N << endl;
+    for (int i=0; i<N; ++i) {
+        if (i > 0) fout << " ";
+        fout << fixed << setprecision(7) << vec[i];
+    }
+    fout << endl;
+
+    float dev = 0;
+    for (int i=0; i<N; ++i) {
+        dev += vec[i]*vec[i];
+    }
+    dev /= N;
+    float lambda = sensitivity / epsilon;
+    fout << fixed << setprecision(7) << dev << " " << (2.0*lambda*lambda) << endl;
+
+    fout.close();
+    return 0;
+}

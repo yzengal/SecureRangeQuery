@@ -10,7 +10,7 @@
 
 #include "ICDE18.grpc.pb.h"
 
-#define LOCAL_DEBUG
+//#define LOCAL_DEBUG
 #define GRID_NUM_PER_SIDE 5
 
 using ICDE18::Point;
@@ -72,7 +72,7 @@ bool IntersectWithRange(const Record_t& a, const Circle_t& b);
 // void CopyFromVector(FloatVector& des, const std::vector<float>& des);
 template <typename T>
 void CopyFromVector(IntVector& des, const std::vector<T>& src) {
-    des.set_size(des.size());
+    des.set_size(src.size());
     des.clear_values();
     for (T v : src) {
         des.add_values((int) v);
@@ -81,7 +81,7 @@ void CopyFromVector(IntVector& des, const std::vector<T>& src) {
 
 template <typename T>
 void CopyFromVector(FloatVector& des, const std::vector<T>& src) {
-    des.set_size(des.size());
+    des.set_size(src.size());
     des.clear_values();
     for (T v : src) {
         des.add_values((float) v);
@@ -89,17 +89,17 @@ void CopyFromVector(FloatVector& des, const std::vector<T>& src) {
 }
 
 template <typename T>
-void CopyToVector(std::vector<T>& src, const IntVector& des) {
-    src.clear();
-    for (size_t i=0,sz=des.size(); i<sz; ++i)
-        src.emplace_back((T) des.values(i));
+void CopyToVector(std::vector<T>& des, const IntVector& src) {
+    des.clear();
+    for (size_t i=0,sz=src.size(); i<sz; ++i)
+        des.emplace_back((T) src.values(i));
 }
 
 template <typename T>
-void CopyToVector(std::vector<T>& src, const FloatVector& des) {
-    src.clear();
-    for (size_t i=0,sz=des.size(); i<sz; ++i)
-        src.emplace_back((T) des.values(i)); 
+void CopyToVector(std::vector<T>& des, const FloatVector& src) {
+    des.clear();
+    for (size_t i=0,sz=src.size(); i<sz; ++i)
+        des.emplace_back((T) src.values(i)); 
 }
 
 // process read and write file

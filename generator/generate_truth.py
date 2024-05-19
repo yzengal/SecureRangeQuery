@@ -27,7 +27,7 @@ def get_circles(fileName):
             line = line.strip()
             if i==0:
                 n = int(line)
-            else:
+            elif i<=n:
                 x, y, radius = map(float, line.split()[1:4])
                 center = (x, y)  
                 circles.append((center, radius))  
@@ -42,7 +42,7 @@ def get_positions(fileName):
             line = line.strip()
             if i==0:
                 n = int(line)
-            else:
+            elif i<=n:
                 id, x, y = map(int, line.split()[:3])
                 point = (x, y)  
                 positions.append((id, point))  
