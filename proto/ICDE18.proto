@@ -33,7 +33,7 @@ service FedQueryService {
     //
     // Obtains the Ids of grids that intersects with the query range
     //
-    rpc SendFilterGridIndex(IncVector) returns (google.protobuf.Empty) {};
+    rpc SendFilterGridIndex(IntVector) returns (google.protobuf.Empty) {};
 
     // A silo-to-server streaming RPC.
     //
@@ -42,7 +42,7 @@ service FedQueryService {
     // Results are streamed rather than returned at once (e.g. in a response message with a
     // repeated field), as the rectangle may cover a large area and contain a
     // huge number of record.
-    rpc GetFilterGridRecord((google.protobuf.Empty) returns (stream Record) {}
+    rpc GetFilterGridRecord(google.protobuf.Empty) returns (stream Record) {}
 
     // A client-to-server streaming RPC.
     //
@@ -146,9 +146,9 @@ message FloatVector {
     repeated float values = 2;
 }
 
-messsage GridIndexCounts {
+message GridIndexCounts {
     // The number of grid in each side
-    int32 K = 1;
+    int32 k = 1;
 
     // The vector of mins
     FloatVector mins = 2; 

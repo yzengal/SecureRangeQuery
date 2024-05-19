@@ -186,7 +186,11 @@ public:
     }
 
     void GetWidths(std::vector<float>& _widths) {
-        m_grid_ptr->GetWidths(_widths):
+        m_grid_ptr->GetWidths(_widths);
+    }
+
+    void GetIndexCounts(std::vector<size_t>& _counts) {
+        m_grid_ptr->publish_index_counts(_counts);
     }
 
     void SetFileterGridIDs(const std::vector<size_t>& grid_list) {
@@ -196,6 +200,7 @@ public:
 
     void GetFilterGridRecord(std::vector<Record_t>& ans) {
         ans.clear();
+        std::default_random_engine rng;
 
         for (size_t gid : m_grid_id_list) {
             size_t perturb_count = m_grid_ptr->get_index_perturb_count(gid);
@@ -211,10 +216,10 @@ public:
             m_grid_ptr->get_index_record(gid, record_list_tmp);
             
             if (perturb_count < true_count) {// randomly remove some record
-                std::shuffle(record_list_tmp.begin(), record_list_tmp.end());
+                std::shuffle(record_list_tmp.begin(), record_list_tmp.end(), rng);
                 record_list_tmp.resize(perturb_count);
             } else if (perturb_count > true_count) {
-                perturb_count dummy_record_tmp(-1, -1e8, -1e8);
+                ICDE18::Record_t dummy_record_tmp(-1, -1e8, -1e8);
                 for (size_t i=true_count; i<perturb_count; ++i) {
                     record_list_tmp.emplace_back(dummy_record_tmp);
                 }
@@ -225,14 +230,14 @@ public:
 
             ans.insert(ans.end(), record_list_tmp.begin(), record_list_tmp.end());
         }
-        std::shuffle(ans.begin(), ans.end());
+        std::shuffle(ans.begin(), ans.end(), rng);
     }
 
 private:
     void SetGridIndex(float epsilon) {
-        std::ushared_ptr<std::vector<ICDE18::Record_t>> data_ptr = std::make_shared<std::vector<ICDE18::Record_t>>(this->data);
-        m_grid_ptr = std::make_unique<GridIndex<5>>(data_ptr);
-        m_grid_ptr->perturb_index(epsilon);
+        std::shared_ptr<std::vector<ICDE18::Record_t>> data_ptr = std::make_shared<std::vector<ICDE18::Record_t>>(this->data);
+        m_grid_ptr = std::make_unique<GridIndex<GRID_NUM_PER_SIDE>>(data_ptr);
+        m_grid_ptr->perturb_index_counts(epsilon);
     }
 
     int siloID;
@@ -280,22 +285,21 @@ public:
 
         FloatVector mins, maxs, widths;
         std::vector<float> _mins, _maxs, _widths;
-        m_silo_GetMins(_mins);
-        m_silo_GetMins(_maxs);
-        m_silo_GetMins(_widths);
+        m_silo->GetMins(_mins);
+        m_silo->GetMaxs(_maxs);
+        m_silo->GetWidths(_widths);
 
-        assert(_mins.size()==_maxs.size() && _widths.size()==_max.size());
-        CopyFromVector<float>(minxs, _mins);
-        CopyFromVector<float>(maxs, _maxs);
-        CopyFromVector<float>(widths, _widths);
+        assert(_mins.size()==_maxs.size() && _widths.size()==_maxs.size());
+        ICDE18::CopyFromVector<float>(mins, _mins);
+        ICDE18::CopyFromVector<float>(maxs, _maxs);
+        ICDE18::CopyFromVector<float>(widths, _widths);
 
         std::vector<size_t> _counts;
-        grid.publish_index_counts(_counts);
+        m_silo->GetIndexCounts(_counts);
         IntVector counts;
-        CopyFromVector<size_t>(counts, _counts);
+        ICDE18::CopyFromVector<size_t>(counts, _counts);
         
-        
-        grid_counts->set_K(m_silo->GetK());
+        grid_counts->set_k(m_silo->GetK());
         grid_counts->mutable_mins()->CopyFrom(mins);
         grid_counts->mutable_maxs()->CopyFrom(maxs);
         grid_counts->mutable_widths()->CopyFrom(widths);
@@ -308,19 +312,19 @@ public:
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         float runTime = duration.count();
         printf("Silo %d: PublishGridIndex, index.length()=%d, comm=%.0lf, time=%.2f\n", 
-                m_silo->GetSiloID(), grid_counts->K(), (float)grid_counts->ByteSizeLong(), runTime);
+                m_silo->GetSiloID(), grid_counts->k(), (float)grid_counts->ByteSizeLong(), runTime);
         fflush(stdout);
         #endif
 
         return Status::OK;
     }
 
-    Status SendFilterGridIndex(ServerContext* context, const IncVector* request, 
+    Status SendFilterGridIndex(ServerContext* context, const IntVector* request, 
         Empty* response) override {
         std::vector<size_t> grid_ids_list;
 
-        for (size_t i=0, sz=IncVector->size(); i<sz; ++i) {
-            grid_ids_list.emplace_back(IncVector->values(i));
+        for (size_t i=0, sz=request->size(); i<sz; ++i) {
+            grid_ids_list.emplace_back(request->values(i));
         }
         m_silo->SetFileterGridIDs(grid_ids_list);
         

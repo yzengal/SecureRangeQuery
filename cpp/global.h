@@ -48,7 +48,7 @@ struct Circle_t {
 struct Record_t {
     int ID;
     float x, y;
-    Record_t(int _ID, float _x, float _y): ID(_ID), x(_x), y(_y) {}
+    Record_t(int _ID=-1, float _x=0., float _y=0.): ID(_ID), x(_x), y(_y) {}
 };
 
 // process spatial basic function
@@ -90,14 +90,14 @@ void CopyFromVector(FloatVector& des, const std::vector<T>& src) {
 
 template <typename T>
 void CopyToVector(std::vector<T>& src, const IntVector& des) {
-    src.clear(des.size());
+    src.clear();
     for (size_t i=0,sz=des.size(); i<sz; ++i)
         src.emplace_back((T) des.values(i));
 }
 
 template <typename T>
 void CopyToVector(std::vector<T>& src, const FloatVector& des) {
-    src.clear(des.size());
+    src.clear();
     for (size_t i=0,sz=des.size(); i<sz; ++i)
         src.emplace_back((T) des.values(i)); 
 }

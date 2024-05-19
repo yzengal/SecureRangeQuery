@@ -2,11 +2,11 @@
 
 ## Environment
 
-Linux: Ubuntu 18.04.4 LTS
-GCC/G++: 8.4.0
-CMake: 3.22.1
-gRPC: 1.64.0
-SEAL: 4.1.1
+Linux: Ubuntu 18.04.4 LTS   
+GCC/G++: 8.4.0   
+CMake: 3.22.1   
+gRPC: 1.64.0   
+SEAL: 4.1.1    
 
 ## Required Third-Party Library
 

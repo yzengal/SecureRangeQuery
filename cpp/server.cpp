@@ -29,6 +29,7 @@ using grpc::ClientReader;
 using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
+using google::protobuf::Empty;
 using ICDE18::Circle_t;
 using ICDE18::Rectangle_t;
 using ICDE18::Point;
@@ -38,6 +39,8 @@ using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
 using ICDE18::IntVector;
+using ICDE18::FloatVector;
+using ICDE18::GridIndexCounts;
 using ICDE18::RecordSummary;
 using ICDE18::FedQueryService;
 using ICDE18::QueryLogger;
@@ -200,9 +203,9 @@ public:
   void GetGridIndex() {
     ClientContext context;
     Empty request;
-    IntVector response;
+    GridIndexCounts response;
   
-    Status Res = stub_->GetGridIndex(&context, request, &response); 
+    Status status = stub_->GetGridIndex(&context, request, &response); 
     if (status.ok()) {
       printf("gRPC [GetGridIndex] succeeded.\n");
       fflush(stdout);
@@ -215,19 +218,19 @@ public:
     queryComm += response.ByteSizeLong();
     log.LogAddComm(response.ByteSizeLong());
     
-    m_K = response.K();
-    CopyToVector<float>(m_mins, response.mins());
-    CopyToVector<float>(m_maxs, response.maxs());
-    CopyToVector<float>(m_widths, response.widths());
-    CopyToVector<float>(m_counts, response.counts());
+    m_K = response.k();
+    ICDE18::CopyToVector<float>(m_mins, response.mins());
+    ICDE18::CopyToVector<float>(m_maxs, response.maxs());
+    ICDE18::CopyToVector<float>(m_widths, response.widths());
+    ICDE18::CopyToVector<size_t>(m_counts, response.counts());
 
     #ifdef LOCAL_DEBUG
     printf("There are %d grid in the grid index (K = %d):\n", (int)m_counts.size(), m_K);
-    for (int i=0,sz=m_GridIndexCounts.size(); i<sz; ++i) {
+    for (int i=0,sz=m_counts.size(); i<sz; ++i) {
       if (i == 0)
-        printf("  %d", m_counts[i]);
+        printf("  %d", (int)m_counts[i]);
       else
-        printf(", %d", m_counts[i]);
+        printf(", %d", (int)m_counts[i]);
     }
     putchar('\n');
     fflush(stdout);
@@ -251,7 +254,7 @@ public:
     }
     request.set_size(request_sz);
 
-    Status Res = stub_->SendFilterGridIndex(&context, request, &response); 
+    Status status = stub_->SendFilterGridIndex(&context, request, &response); 
     if (status.ok()) {
       printf("gRPC [SendFilterGridIndex] succeeded.\n");
       fflush(stdout);
@@ -269,7 +272,7 @@ public:
     return queryComm;
   }
 
-  float InitQueryComm(float init_value = 0.0f) {
+  void InitQueryComm(float init_value = 0.0f) {
     queryComm = init_value;
   }
 
@@ -312,7 +315,7 @@ public:
     #endif   
   }
 
-  void VerifyGridRecord(const Circle_t& circ, std::vector<ICDE18::Record_t>& res_record_list) {
+  void VerifyGridRecord(const Circle_t& circ, std::vector<ICDE18::Record>& res_record_list) {
     res_record_list.clear();
     for (auto record : m_record_list) {
       if (!record.has_p()) {
@@ -321,7 +324,7 @@ public:
       if (record.id() < 0) {
         continue;
       }
-      Record_t record_tmp(-1, record.p().x(), record.p().y());
+      ICDE18::Record_t record_tmp(-1, record.p().x(), record.p().y());
       if (ICDE18::IntersectWithRange(record_tmp, circ)) {
         res_record_list.emplace_back(record);
       }
@@ -345,10 +348,10 @@ private:
 
     // check if any corner of the rectangle is inside the circle
     const int temporal_record_id = -1;
-    if (ICDE18::IntersectWithRange(Record_t(temporal_record_id, lo_x, lo_y), circ) && 
-        ICDE18::IntersectWithRange(Record_t(temporal_record_id, lo_x, hi_y), circ) &&
-        ICDE18::IntersectWithRange(Record_t(temporal_record_id, hi_x, lo_y), circ) &&
-        ICDE18::IntersectWithRange(Record_t(temporal_record_id, hi_x, hi_y), circ) ) {
+    if (ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, lo_x, lo_y), circ) && 
+        ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, lo_x, hi_y), circ) &&
+        ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, hi_x, lo_y), circ) &&
+        ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, hi_x, hi_y), circ) ) {
       return true;
     }
 
@@ -418,7 +421,7 @@ private:
     m_ServerToSilos[siloID]->SendFilterGridIndex(circ);
   }
 
-  void _localGetFilterGridRecord() {
+  void _localGetFilterGridRecord(int siloID) {
      m_ServerToSilos[siloID]->GetFilterGridRecord();
   }
 

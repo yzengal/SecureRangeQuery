@@ -69,7 +69,7 @@ target_link_libraries(grid
   ${_PROTOBUF_LIBPROTOBUF})
 
 foreach(_target
-  silo server test)
+  silo server)
   add_executable(${_target} "./cpp/${_target}.cpp")
   target_link_libraries(${_target}
   grpc_proto
