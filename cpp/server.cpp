@@ -37,6 +37,7 @@ using ICDE18::Circle;
 using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
+using ICDE18::IntVector;
 using ICDE18::RecordSummary;
 using ICDE18::FedQueryService;
 using ICDE18::QueryLogger;
@@ -125,6 +126,7 @@ public:
       printf("gRPC [AnswerRectangleRangeQuery] succeeded.\n");
     } else {
       printf("gRPC [AnswerRectangleRangeQuery] failed.\n");
+      exit(0);
     }
 
     log.SetEndTimer();
@@ -164,13 +166,17 @@ public:
     Status status = reader->Finish();
     if (status.ok()) {
       printf("gRPC [AnswerCircleRangeQuery] succeeded.\n");
+      fflush(stdout);
     } else {
       printf("gRPC [AnswerCircleRangeQuery] failed.\n");
+      fflush(stdout);
+      exit(0);
     }
 
     log.SetEndTimer();
     log.LogOneQuery(CommQueryAnswer(record_list_));
 
+    #ifdef LOCAL_DEBUG
     printf("There are %d objects in the query range:\n", (int)record_list_.size());
     for (auto record : record_list_) {
       if (record.has_p()) {
@@ -181,6 +187,44 @@ public:
       }
     }
     fflush(stdout);
+    #endif
+
+    return true;
+  }
+
+  bool GetGridIndexCount() {
+    ClientContext context;
+    Empty request;
+    IntVector response;
+  
+    Status Res = stub_->sumRequest(&context, request, &response); 
+    if (status.ok()) {
+      printf("gRPC [GetGridIndexCount] succeeded.\n");
+      fflush(stdout);
+    } else {
+      printf("gRPC [GetGridIndexCount] failed.\n");
+      fflush(stdout);
+      exit(0);
+    }
+
+    log.LogAddComm(response.ByteSizeLong());
+
+    m_GridIndexCounts.resize(response.size());
+    for (int i=0,sz=response.size(); i<sz; ++i) {
+      m_GridIndexCounts.emplace_back(response.values(i));
+    }
+
+    #ifdef LOCAL_DEBUG
+    printf("There are %d grid in the grid index:\n", (int)response.size());
+    for (int i=0,sz=m_GridIndexCounts.size(); i<sz; ++i) {
+      if (i == 0)
+        printf("  %d", m_GridIndexCounts[i]);
+      else
+        printf(", %d", m_GridIndexCounts[i]);
+    }
+    putchar('\n');
+    fflush(stdout);
+    #endif
 
     return true;
   }
@@ -188,6 +232,7 @@ public:
 private:
   std::unique_ptr<FedQueryService::Stub> stub_;
   std::vector<ICDE18::Record> record_list_;
+  std::vector<size_t>> m_GridIndexCounts;
   QueryLogger log;
   int serverID;
   std::string IPAddress;
@@ -210,6 +255,7 @@ public:
       printf("[Connect] channel with Silo %d at ip %s\n", i+1, IPAddress.c_str());
       m_ServerToSilos[i] = std::make_shared<ServerToSilo>(channel, i, IPAddress);
     }  
+    m_GridIndexCounts.resize(m_IPAddresses.size());
   }
 
   void SetCircleQuery(const std::string& fileName, std::vector<Circle_t>& circles) {
@@ -235,6 +281,24 @@ public:
 private:
   void _localRangeQuery(int siloID, const Circle_t& circ) {
     m_ServerToSilos[siloID]->GetQueryAnswer(circ);
+  }
+
+  void _localGetGridIndexCount(int siloID) {
+    m_ServerToSilos[siloID]->GetQueryAnswer(circ);
+  }
+
+  void GetGridIndexCount() {
+    std::vector<std::thread> thread_list(m_ServerToSilos.size());
+
+    // execute local range query
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i] = std::thread(&FedQueryServiceServer::_localGetGridIndexCount, this, i);
+    }
+    for (int i=0; i<m_ServerToSilos.size(); ++i) {
+      thread_list[i].join();
+    }
+
+
   }
 
   void GetQueryAnswer(const Circle_t& circ) {
@@ -274,6 +338,7 @@ private:
   std::vector<std::shared_ptr<ServerToSilo>> m_ServerToSilos;
   std::vector<std::string> m_IPAddresses;
   std::vector<ICDE18::Record> record_list_;
+  std::vector<std::vector<size_t>> m_GridIndexCounts;
   QueryLogger log;
 };
 

@@ -14,7 +14,6 @@ service FedQueryService {
     // huge number of record.
     rpc AnswerCircleRangeQuery(Circle) returns (stream Record) {}
 
-
     // A client-to-server streaming RPC.
     //
     // Obtains the records that are within a Rectangle range.
@@ -23,6 +22,12 @@ service FedQueryService {
     // repeated field), as the rectangle may cover a large area and contain a
     // huge number of record.
     rpc AnswerRectangleRangeQuery(Rectangle) returns (stream Record) {}
+
+    // A client-to-server streaming RPC
+    //
+    // Obtains the counts of grid PublishGridIndex
+    //
+    rpc PublishGridIndex(google.protobuf.Empty) returns (GridIndexCounts) {};
 
     // A client-to-server streaming RPC.
     //
@@ -105,6 +110,39 @@ message Record {
 
     // The measure attribute of this record.
     // string name = 3;
+}
+
+// The count of each grid
+//
+// If a record could not be named, the name is empty.
+message IntVector {
+    // The size of the counts.
+    int32 size = 1;
+
+    // The vector of the counts
+    repeated int32 values = 2;
+}
+
+message FloatVector {
+    // The size of the counts.
+    int32 size = 1;
+
+    // The vector of the counts
+    repeated int32 values = 2;
+}
+
+messsage GridIndexCounts {
+    // The number of grid in each side
+    int32 K = 1;
+
+    // The vector of mins
+    FloatVector mins = 2; 
+    
+    // The vector of maxs
+    FloatVector maxs = 3;
+
+    // The vector of widths 
+    FloatVector widths = 4;
 }
 
 // A RecordSummary is received in response to a federated range counting query.

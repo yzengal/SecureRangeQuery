@@ -76,12 +76,18 @@ public:
         std::cout << "Index Size: " << index_size() << " Bytes" << std::endl;
     }
 
-    void perturb_index(double epsilon) {
+    void perturb_index_counts(double epsilon) {
         double grid_epsilon = epsilon / ipow(K, dim);
         for (int i=0; i<counts.size(); ++i) {
             size_t noise = floor(LaplaceMechanism(1, grid_epsilon));
             counts[i] += floor(noise);
         }
+    }
+
+    void publish_index_counts(std::vector<size_t>& _cnts) {
+        _cnts.clear();
+        for (auto cnt : counts)
+            _cnts.emplace_back(cnt);
     }
 
     Points_t range_query(ICDE18::Circle_t& circ) {

@@ -108,13 +108,18 @@ public:
         endTime = std::chrono::steady_clock::now(); 
     }
 
+    void LogAddComm(double _queryComm=0.0f) {
+        queryComm += _queryComm;
+    }
+
     void LogOneQuery(double _queryComm=0.0f) {
+        LogAddComm(_queryComm);
+
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         double _queryTime = duration.count();
 
         queryNum += 1;
         queryTime += _queryTime;
-        queryComm += _queryComm;
 
         endTime = startTime;
     }

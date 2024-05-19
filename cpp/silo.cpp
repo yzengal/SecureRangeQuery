@@ -16,8 +16,9 @@
 #include <grpcpp/server_context.h>
 
 
-#include "global.h"
 #include "ICDE18.grpc.pb.h"
+#include "global.h"
+#include "grid.hpp"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -26,6 +27,7 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
+using google::protobuf::Empty;
 using ICDE18::Record_t;
 using ICDE18::Point;
 using ICDE18::Rectangle;
@@ -33,10 +35,14 @@ using ICDE18::Circle;
 using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
+using ICDE18::IntVector;
+using ICDE18::FloatVector;
+using ICDE18::GridIndexCounts;
 using ICDE18::RecordSummary;
 using ICDE18::QueryLogger;
 using ICDE18::FedQueryService;
 using std::chrono::system_clock;
+using INDEX::GridIndex;
 
 Record MakeRecord(const Record_t& r) {
   Record ret;
@@ -52,8 +58,9 @@ Record MakeRecord(const Record_t& r) {
 
 class Silo {
 public:
-    Silo(const int _siloID=0, const std::string& fileName="") : siloID(_siloID) {
+    Silo(const int _siloID=0, const std::string& fileName="", const double _epsilon=0.5) : siloID(_siloID) {
         SetDataRecord(fileName);
+        SetGridIndex(_epsilon);
     }
 
     ~Silo() {
@@ -167,10 +174,17 @@ public:
     }
 
 private:
+    void SetGridIndex(double epsilon) {
+        std::ushared_ptr<std::vector<ICDE18::Record_t>> data_ptr = std::make_shared<std::vector<ICDE18::Record_t>>(this->data);
+        grid_ptr = std::make_unique<GridIndex<5>>(data_ptr);
+        grid_ptr->perturb_index(epsilon);
+    }
+
     int siloID;
     QueryLogger log;
     std::vector<Record_t> data;
     std::string siloIP;
+    std::unique_ptr<GridIndex<5>> grid_ptr;
 };
 
 class FedQueryServiceImpl final : public FedQueryService::Service {
@@ -196,6 +210,36 @@ public:
 
         log.SetEndTimer();
         log.LogOneQuery(record.ByteSizeLong() * ans.size());
+
+        return Status::OK;
+    }
+
+
+    Status PublishGridIndex(ServerContext* context,
+                        const Empty* request,
+                        GridIndexCounts* grid_counts) override {
+        #ifdef LOCAL_DEBUG
+        auto startTime = std::chrono::steady_clock::now();
+        #endif
+
+        std::vector<size_t> counts_list;
+        grid.publish_index_counts(counts_list);
+        
+        grid_counts->set_size(counts_list.size());
+        grid_counts->clear_values();
+        for (auto cnt : counts_list)
+            GridIndexCounts->add_values(cnt);
+
+        log.LogAddComm(grid_counts->ByteSizeLong());
+
+        #ifdef LOCAL_DEBUG
+        auto endTime = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        double runTime = duration.count();
+        printf("Silo %d: PublishGridIndex, index.length()=%d, comm=%.0lf, time=%.2lf\n", 
+                m_silo->GetSiloID(), grid_counts->K(), (double)grid_counts->ByteSizeLong(), runTime);
+        fflush(stdout);
+        #endif
 
         return Status::OK;
     }
