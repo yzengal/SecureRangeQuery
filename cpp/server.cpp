@@ -91,7 +91,9 @@ public:
   }
 
   ~ServerToSilo() {
+    #ifdef LOCAL_DEBUG
     print();
+    #endif
   }
 
   void print() {
@@ -439,8 +441,9 @@ public:
     std::vector<Circle_t> circles;
 
     SetCircleQuery(fileName, circles);
+    printf("%zu\n", circles.size());
     for (int i=0,sz=circles.size(); i<sz; ++i) {
-      m_GetQueryAnswer_byGridIndex(circles[i], i);
+      m_GetQueryAnswer_byGridIndex(circles[i], i+1);
     }
 
     log.Print();
@@ -610,16 +613,30 @@ private:
 
 int main(int argc, char** argv) {
   // Expect only arg: --query_path=../../data/query.txt --ip_path=../../data/ip.txt
+  #ifdef LOCAL_DEBUG
+  std::cout << argc << std::endl;
+  for (int i=0; i<argc; ++i)
+    std::cout << argv[i] << std::endl;
+  #endif
+
   std::string query_file = ICDE18::GetQueryFilePath(argc, argv);
   std::string ip_file = ICDE18::GetSiloIPFilePath(argc, argv);
   
-  // std::string IPAddress("localhost:50051");
-  // std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
+  #ifdef LOCAL_DEBUG
+  printf("--query_path=%s --ip_path=%s\n", query_file.c_str(), ip_file.c_str());
+  fflush(stdout);
+  #endif
   
+  #ifdef LOCAL_DEBUG
   printf("[Connect] Server\n");
+  fflush(stdout);
+  #endif
   FedQueryServiceServer fedServer(ip_file);
 
+  #ifdef LOCAL_DEBUG
   printf("-------------- Test Circle Range Query --------------\n");
+  fflush(stdout);
+  #endif
   fedServer.GetQueryAnswer_byGridIndex(query_file);
 
   // printf("-------------- Test Rectangle Range Query --------------\n");

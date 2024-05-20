@@ -221,7 +221,7 @@ public:
                 ** The following line is based on the original paper, 
                 ** remove some record when meeting negative noise in the grid cunt
                 **/
-                //record_list_tmp.resize(perturb_count);
+                record_list_tmp.resize(perturb_count);
             } else if (perturb_count > true_count) {
                 ICDE18::Record_t dummy_record_tmp(-1, -1e8, -1e8);
                 for (size_t i=true_count; i<perturb_count; ++i) {
@@ -409,7 +409,7 @@ public:
     }
 
     void Print() {
-        m_silo->Print();
+        log.Print();
     }
 
 private:

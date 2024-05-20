@@ -73,7 +73,7 @@ public:
         auto end = std::chrono::steady_clock::now();
         build_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "Build Time: " << build_time << " [ms]" << std::endl;
-        std::cout << "Index Size: " << index_size() << " Bytes" << std::endl;
+        std::cout << "Index Size: " << index_size() << " [bytes]" << std::endl;
 
         #ifdef LOCAL_DEBUG
         for (size_t i=0; i<counts.size(); ++i) {
@@ -94,10 +94,7 @@ public:
             size_t noise = floor(LaplaceMechanism(1, grid_epsilon));
             if (fabs(noise) > UPPER_BOUND)
                 noise = UPPER_BOUND * (noise>0 ? 1:-1);
-            if (noise < 0)
-                counts[i] = noise;
-            else
-                counts[i] += noise;
+            counts[i] += noise;
         }
     }
 

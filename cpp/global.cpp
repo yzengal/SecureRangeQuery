@@ -153,13 +153,13 @@ std::string GetDataFilePath(int argc, char** argv) {
 std::string GetQueryFilePath(int argc, char** argv) {
     std::string db_path;
     std::string arg_str("--query_path");
-    if (argc > 2) {
-        std::string argv_2 = argv[2];
-        size_t start_position = argv_2.find(arg_str);
+    if (argc > 1) {
+        std::string argv_1 = argv[1];
+        size_t start_position = argv_1.find(arg_str);
         if (start_position != std::string::npos) {
             start_position += arg_str.size();
-            if (argv_2[start_position] == ' ' || argv_2[start_position] == '=') {
-                db_path = argv_2.substr(start_position + 1);
+            if (argv_1[start_position] == ' ' || argv_1[start_position] == '=') {
+                db_path = argv_1.substr(start_position + 1);
             }
         }
     } else {
