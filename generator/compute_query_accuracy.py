@@ -1,71 +1,77 @@
 import random
 import sys
+import os
 
-def is_point_in_circle(point, circle):  
-    """  
-    判断一个二维点是否在圆内（包括圆上）。  
-      
-    参数:  
-        point (tuple): 二维点，格式为 (x, y)  
-        center (tuple): 圆心，格式为 (x, y)  
-        radius (float): 圆的半径  
-          
-    返回:  
-        bool: 如果点在圆内（包括圆上），返回 True；否则返回 False  
-    """  
-    # 计算点到圆心的距离的平方  
-    center, radius = circle
-    distance_squared = (point[0] - center[0]) ** 2 + (point[1] - center[1]) ** 2  
-    # 判断距离的平方是否小于等于半径的平方  
-    return distance_squared <= radius ** 2  
-  
-def get_circles(fileName):  
-    circles = []
+def get_truths(fileName):  
+    truths = dict()
     with open(fileName, "r") as fin:
         i, n = 0, 0
         for line in fin:
             line = line.strip()
             if i==0:
                 n = int(line)
-            elif i<=n:
-                x, y, radius = map(float, line.split()[1:4])
-                center = (x, y)  
-                circles.append((center, radius))  
+            elif i<=n*2:
+                if i%2==1:
+                    qid, sz = map(int, line.split()[:2])
+                else:
+                    tmpList = set(map(int, line.split()))
+                    truths[qid] = tmpList
             i += 1
-    return circles
-  
-def get_positions(fileName):  
-    positions = []
+    return truths
+
+def get_results(fileName):  
+    results = dict()
     with open(fileName, "r") as fin:
         i, n = 0, 0
         for line in fin:
             line = line.strip()
             if i==0:
                 n = int(line)
-            elif i<=n:
-                id, x, y = map(int, line.split()[:3])
-                point = (x, y)  
-                positions.append((id, point))  
+            elif i<=n*2:
+                if i%2==1:
+                    qid, sz, cand = map(int, line.split()[:3])
+                else:
+                    tmpList = set(map(int, line.split()))
+                    results[qid] = [tmpList, cand]
             i += 1
-    return positions
+    return results
 
-def dumpToFile(fileName, positions, circles):
-    with open(fileName, "w") as fout:
-        fout.write("%d\n" % (len(circles)))
-        for i,circle in enumerate(circles):
-            tmpList = []
-            for (pid, point) in positions:
-                if is_point_in_circle(point, circle):
-                    tmpList.append(pid)
-            fout.write("%d %d\n" % (i+1, len(tmpList)))
-            line = " ".join(map(str, tmpList)) + "\n"
+def dumpToFile(fileName, truths, results):
+    total_recall, total_precision = 0.0, 0.0
+    for qid in sorted(truths.keys()):
+        true_answers = truths[qid]
+        recv_answers, recv_cand = results[qid]
+        tp = len(true_answers.intersection(recv_answers))
+        assert tp==len(recv_answers), "recv_answer has false positive"
+        fn = len(true_answers - recv_answers)
+        fp = recv_cand - tp
+        cur_recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        cur_precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0 
+        print(f"recall = {cur_recall:.4f}, cur_precision = {cur_precision:.4f}")
+        total_recall += cur_recall
+        total_precision += cur_precision
+
+
+    
+    query_num = len(truths)
+    if query_num == 0:
+        avg_recall, avg_precision = 0.0, 0.0
+    else:
+        avg_recall = total_recall / query_num
+        avg_precision = total_precision / query_num
+    
+    line = "\n[AVERAGE] recall = %.6f, precision = %.6f\n" % (avg_recall, avg_precision)
+    if not fileName:                # fileName is empty
+        print(line)
+    else:
+        with open(fileName, "w") as fout:
             fout.write(line)
 
 
 if __name__ == "__main__":
      # 检查命令行参数数量  
-    if len(sys.argv) != 4:  
-        print("Usage: python compute_query_accuracy.py <truthfile> <resultfile>")  
+    if len(sys.argv) < 3:  
+        print("Usage: python compute_query_accuracy.py <truthfile> <resultfile> <outputfile(optional)>")  
         sys.exit(1)  
 
     # 尝试将第二个命令行参数（索引为1，因为索引从0开始）转换为整数  
@@ -80,9 +86,18 @@ if __name__ == "__main__":
     except ValueError:  
         print("Error: <filename> must be a valid path.")  
         sys.exit(1)  
+    
+    if len(sys.argv) > 3:
+        try:  
+            output_fileName = sys.argv[3]
+        except ValueError:  
+            print("Error: <filename> must be a valid path.")  
+            sys.exit(1) 
+    else:
+        output_fileName = ""
 
-    positions = get_positions(data_fileName)  
-    circles = get_circles(query_fileName)
-    dumpToFile(truth_fileName, positions, circles)
+    truths = get_truths(truth_fileName)  
+    results = get_results(result_fileName)
+    dumpToFile(output_fileName, truths, results)
 
     print("[FINISH] Compute Query Accuracy")

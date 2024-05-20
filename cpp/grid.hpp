@@ -89,7 +89,7 @@ public:
     }
 
     void perturb_index_counts(float epsilon) {
-        const double UPPER_BOUND = 1e1;
+        const double UPPER_BOUND = 1e2;
         float grid_epsilon = epsilon / ipow(K, dim);
         for (int i=0; i<counts.size(); ++i) {
             double noise = LaplaceMechanism(1.0, grid_epsilon);
