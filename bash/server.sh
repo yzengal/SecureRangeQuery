@@ -1,3 +1,3 @@
 #!/bin/sh
 
-../cmake/build/server --query_path=../data/query_100.txt
+../cmake/build/server --query_path=../data/query.txt

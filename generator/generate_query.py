@@ -37,7 +37,7 @@ def dumpToFile(fileName, circles):
 if __name__ == "__main__":
      # 检查命令行参数数量  
     if len(sys.argv) != 3:  
-        print("Usage: python script.py <n> <filename>")  
+        print("Usage: python generate_query.py <n> <filename>")  
         sys.exit(1)  
 
     # 尝试将第二个命令行参数（索引为1，因为索引从0开始）转换为整数  

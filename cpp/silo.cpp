@@ -57,16 +57,14 @@ Record MakeRecord(const Record_t& r) {
 }
 
 class Silo {
+using COUNT_TYPE = int;
+
 public:
-    Silo(const int _siloID=0, const std::string& fileName="", const float _epsilon=0.5) : siloID(_siloID) {
+    Silo(const int _siloID=0, const std::string& fileName="", const float _epsilon=1.0) : siloID(_siloID) {
         SetDataRecord(fileName);
         SetGridIndex(_epsilon);
     }
-
-    ~Silo() {
-        Print();
-    }
-
+    
     void AnswerCircleRangeQuery(const Circle& range, std::vector<Record_t>& ans) {
         log.SetStartTimer();
         ICDE18::Circle_t circ;
@@ -203,9 +201,12 @@ public:
         std::default_random_engine rng;
 
         for (size_t gid : m_grid_id_list) {
-            size_t perturb_count = m_grid_ptr->get_index_perturb_count(gid);
-            size_t true_count = m_grid_ptr->get_index_true_count(gid);
+            COUNT_TYPE perturb_count = m_grid_ptr->get_index_perturb_count(gid);
+            COUNT_TYPE true_count = m_grid_ptr->get_index_true_count(gid);
+            
             #ifdef LOCAL_DEBUG
+            printf("gid = %zu, perturb_count = %d, true_count = %d", gid, perturb_count, true_count);
+            fflush(stdout);
             assert(perturb_count != 0);
             #endif
             if (perturb_count < 0) {
@@ -214,6 +215,12 @@ public:
             
             std::vector<Record_t> record_list_tmp;
             m_grid_ptr->get_index_record(gid, record_list_tmp);
+            
+            #ifdef LOCAL_DEBUG
+            printf(", record_list_tmp.size() = %zu", record_list_tmp.size());
+            fflush(stdout);
+            assert(record_list_tmp.size() == true_count);
+            #endif
             
             if (perturb_count < true_count) {// randomly remove some record
                 std::shuffle(record_list_tmp.begin(), record_list_tmp.end(), rng);
@@ -228,11 +235,14 @@ public:
                     record_list_tmp.emplace_back(dummy_record_tmp);
                 }
             }
+            ans.insert(ans.end(), record_list_tmp.begin(), record_list_tmp.end());
+
             #ifdef LOCAL_DEBUG
             assert(perturb_count == record_list_tmp.size());
+            printf(", record_list_local.size() = %zu", record_list_tmp.size());
+            printf(", ans.size() = %zu\n", ans.size());
+            fflush(stdout);
             #endif
-
-            ans.insert(ans.end(), record_list_tmp.begin(), record_list_tmp.end());
         }
         std::shuffle(ans.begin(), ans.end(), rng);
     }
@@ -353,19 +363,23 @@ public:
         m_RecordVector.clear();
 
         #ifdef LOCAL_DEBUG
-        printf("Silo %d: GetFilterGridRecord\n", m_silo->GetSiloID());
+        printf("Silo %d: GetFilterGridRecord START\n", m_silo->GetSiloID());
         fflush(stdout);
-        //std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         #endif
 
         std::vector<Record_t> ans;
         m_silo->GetFilterGridRecord(ans);
+
+        #ifdef LOCAL_DEBUG
+        printf("Silo %d: GetFilterGridRecord DONE\n", m_silo->GetSiloID());
+        fflush(stdout);
+        #endif
         for (auto record_ : ans) {
            record = MakeRecord(record_);
            m_RecordVector.emplace_back(record_);
            writer->Write(record);
         }
-
         log.LogOneQuery(record.ByteSizeLong() * ans.size());
 
         #ifdef LOCAL_DEBUG
