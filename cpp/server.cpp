@@ -127,9 +127,13 @@ public:
     }
     Status status = reader->Finish();
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerRectangleRangeQuery] succeeded.\n");
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerRectangleRangeQuery] failed.\n");
+      #endif
       exit(-1);
     }
 
@@ -174,11 +178,15 @@ public:
     }
     Status status = reader->Finish();
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerCircleRangeQuery] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerCircleRangeQuery] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -209,11 +217,15 @@ public:
   
     Status status = stub_->GetGridIndex(&context, request, &response); 
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetGridIndex] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetGridIndex] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -260,11 +272,15 @@ public:
 
     Status status = stub_->SendFilterGridIndex(&context, request, &response); 
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [SendFilterGridIndex] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [SendFilterGridIndex] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -294,11 +310,15 @@ public:
     }
     Status status = reader->Finish();
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetFilterGridRecord] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetFilterGridRecord] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -386,8 +406,12 @@ public:
     for (int i=0; i<m_IPAddresses.size(); ++i) {
       std::string IPAddress = m_IPAddresses[i];
       std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
-      printf("[Connect] channel with Silo %d at ip %s\n", i+1, IPAddress.c_str());
       m_ServerToSilos[i] = std::make_shared<ServerToSilo>(channel, i, IPAddress);
+      
+      #ifdef LOCAL_DEBUG
+      printf("[Connect] channel with Silo %d at ip %s\n", i+1, IPAddress.c_str());
+      fflush(stdout);
+      #endif
     }  
     m_GridIndexCounts.resize(m_IPAddresses.size());
   }
