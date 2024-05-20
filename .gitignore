@@ -38,6 +38,6 @@ server
 log
 
 .vscode/
-.vscodeCounter/
+.vsCodeCounter/
 .history/
 cmake/
