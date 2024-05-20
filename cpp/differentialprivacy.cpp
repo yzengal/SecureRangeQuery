@@ -2,18 +2,17 @@
 
 namespace DIFFERENTIALPRIVACY {
 
-float LaplaceMechanism(float sensitivity, float epsilon) {
+double LaplaceMechanism(float sensitivity, float epsilon) {
     std::random_device rd;
     std::mt19937 generator(rd());
-    std::uniform_real_distribution<float> uniform(0.0, 1.0);
-    float scale = sensitivity/epsilon;
+    //std::uniform_real_distribution<float> uniform(0.0, 1.0);
+    double scale = sensitivity/epsilon;
 
     std::exponential_distribution<double> distribution1(1.0/scale);
     std::exponential_distribution<double> distribution2(1.0/scale);
     double e1 = distribution1(generator);
     double e2 = distribution2(generator);
-    double ret = e1-e2;
-    return ret;
+    return floor(e1 - e2);
     
     // float u1, u2;
     // do {

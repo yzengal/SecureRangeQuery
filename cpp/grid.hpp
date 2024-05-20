@@ -29,6 +29,7 @@ class GridIndex {
 using Point_t = ICDE18::Record_t;
 using Points_t = std::vector<Point_t>;
 using Range = std::pair<size_t, size_t>;
+using COUNT_TYPE = int;
 
 public:
     GridIndex(const std::shared_ptr<Points_t>& _points) {
@@ -73,14 +74,14 @@ public:
         auto end = std::chrono::steady_clock::now();
         build_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "Build Time: " << build_time << " [ms]" << std::endl;
-        std::cout << "Index Size: " << index_size() << " Bytes" << std::endl;
+        std::cout << "Index Size: " << index_size() << " [bytes]" << std::endl;
 
         #ifdef LOCAL_DEBUG
         for (size_t i=0; i<counts.size(); ++i) {
             if (i == 0)
-                printf("  %zu", counts[i]);
+                printf("  %d", counts[i]);
             else
-                printf(", %zu", counts[i]);
+                printf(", %d", counts[i]);
         }
         putchar('\n');
         fflush(stdout);
@@ -88,32 +89,29 @@ public:
     }
 
     void perturb_index_counts(float epsilon) {
-        const int UPPER_BOUND = 1e2;
+        const double UPPER_BOUND = 1e3;
         float grid_epsilon = epsilon / ipow(K, dim);
         for (int i=0; i<counts.size(); ++i) {
-            size_t noise = floor(LaplaceMechanism(1, grid_epsilon));
-            if (fabs(noise) > UPPER_BOUND)
+            double noise = LaplaceMechanism(1.0, grid_epsilon);
+            if (noise>UPPER_BOUND || noise<-UPPER_BOUND)
                 noise = UPPER_BOUND * (noise>0 ? 1:-1);
-            if (noise < 0)
-                counts[i] = noise;
-            else
-                counts[i] += noise;
+            counts[i] += noise;
         }
     }
 
-    size_t get_index_perturb_count(const size_t gid) {
+    COUNT_TYPE get_index_perturb_count(const size_t gid) {
         return counts[gid];
     }
 
-    size_t get_index_true_count(const size_t gid) {
+    COUNT_TYPE get_index_true_count(const size_t gid) {
         return buckets[gid].size();
     }
 
     void get_index_record(const size_t gid, std::vector<Record_t>& data) {
         data.clear();
-        Points_t& points = *points_ptr;
         for (size_t pid : buckets[gid])  {
-            data.emplace_back(points[pid]);
+            Point_t point = (*points_ptr)[pid];
+            data.emplace_back(point);
         }
     }
 
@@ -225,7 +223,7 @@ private:
     size_t num_of_points;
     std::shared_ptr<Points_t> points_ptr;
     std::array<std::vector<size_t>, ipow(K, dim)> buckets;
-    std::array<size_t, ipow(K, dim)> counts;
+    std::array<COUNT_TYPE, ipow(K, dim)> counts;
     std::array<float, dim> mins;
     std::array<float, dim> maxs;
     std::array<float, dim> widths;

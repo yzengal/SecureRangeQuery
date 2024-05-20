@@ -11,7 +11,7 @@
 #include "ICDE18.grpc.pb.h"
 
 //#define LOCAL_DEBUG
-#define GRID_NUM_PER_SIDE 5
+#define GRID_NUM_PER_SIDE 10
 
 using ICDE18::Point;
 using ICDE18::Rectangle;
@@ -167,7 +167,7 @@ public:
     void Print() {
         float AvgQueryTime = (queryNum==0) ? 0 : (queryTime/queryNum);
         float AvgQueryComm = (queryNum==0) ? 0 : (queryComm/queryNum);
-        printf("\n\n-------------- Query Log --------------\n");
+        printf("-------------- Query Log --------------\n");
         printf("QueryNum = %d, AvgQueryTime = %.2fms, AvgQueryComm = %.2fbytes\n\n", queryNum, AvgQueryTime, AvgQueryComm);
         fflush(stdout);
     }

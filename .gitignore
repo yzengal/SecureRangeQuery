@@ -37,6 +37,9 @@ server
 # temporay log file
 log
 
+# data file
+data/*w.txt
+
 .vscode/
 .vsCodeCounter/
 .history/
