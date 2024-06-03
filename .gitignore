@@ -39,4 +39,5 @@ log
 
 .vscode/
 .history/
+.VSCodeCounter/
 cmake/
