@@ -1,3 +1,5 @@
+// The source code is from https://github.com/SergeyBel/AES.git
+
 #include "AES.h"
 
 AES::AES(const AESKeyLength keyLength) {

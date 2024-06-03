@@ -44,6 +44,27 @@ service FedQueryService {
     // huge number of record.
     rpc GetFilterGridRecord(google.protobuf.Empty) returns (stream Record) {}
 
+
+    // A silo-to-server streaming RPC.
+    //
+    // Obtains the encrypted records that are within a Rectangle range.
+    // 
+    // Results are streamed rather than returned at once (e.g. in a response message with a
+    // repeated field), as the rectangle may cover a large area and contain a
+    // huge number of record.
+    rpc GetFilterGridEncryptRecord(google.protobuf.Empty) returns (stream EncryptRecord) {}
+
+
+    // A silo-to-server streaming RPC.
+    //
+    // Obtains the encrypted records that are within a Rectangle range.
+    // 
+    // Results are streamed rather than returned at once (e.g. in a response message with a
+    // repeated field), as the rectangle may cover a large area and contain a
+    // huge number of record.
+    rpc GetFilterGridEncryptKeys(google.protobuf.Empty) returns (CharVector) {}
+
+
     // A client-to-server streaming RPC.
     //
     // Obtains the #(records) that are within a Circle range.
@@ -125,6 +146,29 @@ message Record {
 
     // The measure attribute of this record.
     // string name = 3;
+}
+
+
+// A encrypted record names something at a given point.
+//
+// If a record could not be named, the name is empty.
+message EncryptRecord {
+    // The id of the record.
+    int32 id = 1;
+
+    // The encrypted location of this record.
+    bytes ep = 2;
+}
+
+// The vector of encryption/decrption keys
+//
+// If a record could not be named, the name is empty.
+message CharVector {
+    // The size of the counts.
+    int32 size = 1;
+
+    // The vector of the counts
+    bytes values = 2;
 }
 
 // The count of each grid
