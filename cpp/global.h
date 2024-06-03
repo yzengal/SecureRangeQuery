@@ -66,6 +66,10 @@ bool IntersectWithRange(const Record_t& a, const Circle& b);
 bool IntersectWithRange(const Record_t& a, const Rectangle_t& b);
 bool IntersectWithRange(const Record_t& a, const Circle_t& b);
 
+// Serialize & De-serialize
+std::vector<unsigned char> SerializeRecord(const Record_t& rec);
+Record_t DeserializeRecord(const std::vector<unsigned char>& charVector);
+
 
 // process vector basic function
 // void CopyFromVector(IntVector& des, const std::vector<int>& des);

@@ -18,6 +18,7 @@
 
 #include "ICDE18.grpc.pb.h"
 #include "global.h"
+#include "AES.h"
 #include "grid.hpp"
 
 using grpc::Server;
@@ -35,8 +36,10 @@ using ICDE18::Circle;
 using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
+using ICDE18::EncryptRecord;
 using ICDE18::IntVector;
 using ICDE18::FloatVector;
+using ICDE18::ByteVector;
 using ICDE18::GridIndexCounts;
 using ICDE18::RecordSummary;
 using ICDE18::QueryLogger;
@@ -44,17 +47,6 @@ using ICDE18::FedQueryService;
 using std::chrono::system_clock;
 using INDEX::GridIndex;
 
-Record MakeRecord(const Record_t& r) {
-  Record ret;
-  Point p;
-
-  ret.set_id(r.ID);
-  p.set_x(r.x);
-  p.set_y(r.y);
-  ret.mutable_p()->CopyFrom(p);
-  
-  return ret;
-}
 
 class Silo {
 using COUNT_TYPE = int;
@@ -266,6 +258,13 @@ class FedQueryServiceImpl final : public FedQueryService::Service {
 public:
     explicit FedQueryServiceImpl(const int siloID, const std::string& fileName) {
         m_silo = std::make_unique<Silo>(siloID, fileName);  
+        
+        const size_t n_keys = 256 / 8;
+        m_EncryptKeys.resize(n_keys);
+
+        for (size_t i=0; i<n_keys; ++i) {
+            m_EncryptKeys[i] = rand() % (1 + UCHAR_MAX);
+        }
     }
 
     Status AnswerRectangleRangeQuery(ServerContext* context,
@@ -376,8 +375,8 @@ public:
         fflush(stdout);
         #endif
         for (auto record_ : ans) {
-           record = MakeRecord(record_);
            m_RecordVector.emplace_back(record_);
+           record = MakeRecord(record_);
            writer->Write(record);
         }
         log.LogOneQuery(record.ByteSizeLong() * ans.size());
@@ -390,6 +389,41 @@ public:
         }
         fflush(stdout);
         #endif  
+
+        return Status::OK;
+    }
+
+    Status GetFilterGridEncryptRecord(ServerContext* context,
+                        const Empty* circle,
+                        ServerWriter<EncryptRecord>* writer) override {
+        EncryptRecord record;
+        int record_id = 0;
+        m_RecordVector.clear();
+
+        std::vector<Record_t> ans;
+        m_silo->GetFilterGridRecord(ans);
+
+        for (auto record_ : ans) {
+           m_RecordVector.emplace_back(record_);
+           record = MakeEncryptRecord(record_id, record_);
+           writer->Write(record);
+           record_id++;
+        }
+        log.LogOneQuery(record.ByteSizeLong() * ans.size());
+
+        return Status::OK;
+    }
+
+    Status GetEncryptKeys(ServerContext* context,
+                        const Empty* circle,
+                        ByteVector* bytes) override {
+        const size_t n_keys = m_EncryptKeys.size();
+
+        std::string data_str(reinterpret_cast<const char*>(m_EncryptKeys.data()), m_EncryptKeys.size());
+        bytes->set_size(n_keys);
+        bytes->set_values(data_str);
+
+        log.LogAddComm(bytes->ByteSizeLong());
 
         return Status::OK;
     }
@@ -427,7 +461,34 @@ public:
     }
 
 private:
+    Record MakeRecord(const Record_t& r) {
+        Record ret;
+        Point p;
+
+        ret.set_id(r.ID);
+        p.set_x(r.x);
+        p.set_y(r.y);
+        ret.mutable_p()->CopyFrom(p);
+        
+        return ret;
+    }
+
+    EncryptRecord MakeEncryptRecord(const int _id, const Record_t& r) {
+        AES aes(AESKeyLength::AES_256);
+
+        std::vector<unsigned char> plain_data = SerializeRecord(r);
+        std::vector<unsigned char> encrypt_data = aes.EncryptECB(plain, key);
+        std::string data_str(reinterpret_cast<const char*>(encrypt_data.data()), encrypt_data.size());
+       
+        EncryptRecord ret;
+        ret.set_id(_id);
+        ret.set_data(data_str);
+        
+        return ret;
+    }
+
     std::vector<Record_t> m_RecordVector;
+    std::vector<unsigned char> m_EncryptKeys;
     std::unique_ptr<Silo> m_silo;
     QueryLogger log;
 };

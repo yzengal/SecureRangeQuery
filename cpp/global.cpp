@@ -329,4 +329,22 @@ void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_ad
     fin.close();
 }
 
+std::vector<unsigned char> SerializeRecord(const Record_t& rec) {
+    const int sz = ((sizeof(Record_t)+15)/16) * 16;
+    unsigned char des[sz];
+    memcpy(des, &rec, sizeof(unsigned char)*sz);
+    return std::vector<unsigned char>(std::begin(des), std::end(des));
+}
+
+Record_t DeserializeRecord(const std::vector<unsigned char>& charVector) {
+    const int sz = ((sizeof(Record_t)+15)/16) * 16;
+    unsigned char des[sz];
+    for (size_t i=0; i<charVector.size(); ++i) {
+        des[i] = charVector[i];
+    }
+    Record_t ret;
+    memcpy(&ret, des, sizeof(Record_t));
+    return ret;
+}
+
 }  // namespace ICDE18

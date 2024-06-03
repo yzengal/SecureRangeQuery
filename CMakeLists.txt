@@ -48,6 +48,15 @@ target_link_libraries(differentialprivacy
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
+add_library(AES
+  "./cpp/AES.h"
+  "./cpp/AES.cpp")
+
+target_link_libraries(AES
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF})
+
 add_library(global
   "./cpp/global.h"
   "./cpp/global.cpp")
@@ -74,6 +83,7 @@ foreach(_target
   target_link_libraries(${_target}
   grpc_proto
   differentialprivacy
+  AES
   global
   grid
     ${_REFLECTION}
