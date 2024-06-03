@@ -65,14 +65,14 @@ def dumpToFile(fileName, positions, circles):
 if __name__ == "__main__":
      # 检查命令行参数数量  
     if len(sys.argv) != 4:  
-        print("Usage: python script.py <datafile> <queryfile> <resultfile>")  
+        print("Usage: python generate_truth.py <datafile> <queryfile> <resultfile>")  
         sys.exit(1)  
 
     # 尝试将第二个命令行参数（索引为1，因为索引从0开始）转换为整数  
     try:  
         data_fileName = sys.argv[1]  
     except ValueError:  
-        print("Error: <n> must be an integer.")  
+        print("Error: <filename> must be a valid path.")  
         sys.exit(1)  
 
     try:  

@@ -91,7 +91,9 @@ public:
   }
 
   ~ServerToSilo() {
+    #ifdef LOCAL_DEBUG
     print();
+    #endif
   }
 
   void print() {
@@ -127,9 +129,13 @@ public:
     }
     Status status = reader->Finish();
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerRectangleRangeQuery] succeeded.\n");
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerRectangleRangeQuery] failed.\n");
+      #endif
       exit(-1);
     }
 
@@ -174,11 +180,15 @@ public:
     }
     Status status = reader->Finish();
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerCircleRangeQuery] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [AnswerCircleRangeQuery] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -209,11 +219,15 @@ public:
   
     Status status = stub_->GetGridIndex(&context, request, &response); 
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetGridIndex] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetGridIndex] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -248,8 +262,8 @@ public:
     size_t request_sz = 0;
 
     for (size_t i=0, sz=m_counts.size(); i<sz; ++i) {
-      // if (!this->GridIntersectCircle(i, _circ))
-      //   continue;
+      if (!this->GridIntersectCircle(i, _circ))
+        continue;
       // check whether the grid intersects with the circle range
       if (m_counts[i] != 0) {
         ++request_sz;
@@ -260,11 +274,15 @@ public:
 
     Status status = stub_->SendFilterGridIndex(&context, request, &response); 
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [SendFilterGridIndex] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [SendFilterGridIndex] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -273,7 +291,11 @@ public:
   }
 
   float GetQueryComm() {
-    return queryComm;
+    return this->queryComm;
+  }
+
+  size_t GetRecordFP() {
+    return this->m_record_fp;
   }
 
   void InitQueryComm(float init_value = 0.0f) {
@@ -287,6 +309,11 @@ public:
     ClientContext context;
     Empty request;
 
+    #ifdef LOCAL_DEBUG
+    printf("gRPC [GetFilterGridRecord] start.\n");
+    fflush(stdout);
+    #endif
+
     std::unique_ptr<ClientReader<Record> > reader(
         stub_->GetFilterGridRecord(&context, request));
     while (reader->Read(&cand_record)) {
@@ -294,11 +321,15 @@ public:
     }
     Status status = reader->Finish();
     if (status.ok()) {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetFilterGridRecord] succeeded.\n");
       fflush(stdout);
+      #endif
     } else {
+      #ifdef LOCAL_DEBUG
       printf("gRPC [GetFilterGridRecord] failed.\n");
       fflush(stdout);
+      #endif
       exit(-1);
     }
 
@@ -321,6 +352,7 @@ public:
 
   void VerifyGridRecord(const Circle_t& circ, std::vector<ICDE18::Record>& res_record_list) {
     res_record_list.clear();
+    m_record_fp = 0;
     for (auto record : m_record_list) {
       if (!record.has_p()) {
         continue;
@@ -328,6 +360,7 @@ public:
       if (record.id() < 0) {
         continue;
       }
+      ++m_record_fp;
       ICDE18::Record_t record_tmp(-1, record.p().x(), record.p().y());
       if (ICDE18::IntersectWithRange(record_tmp, circ)) {
         res_record_list.emplace_back(record);
@@ -352,9 +385,9 @@ private:
 
     // check if any corner of the rectangle is inside the circle
     const int temporal_record_id = -1;
-    if (ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, lo_x, lo_y), circ) && 
-        ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, lo_x, hi_y), circ) &&
-        ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, hi_x, lo_y), circ) &&
+    if (ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, lo_x, lo_y), circ) || 
+        ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, lo_x, hi_y), circ) ||
+        ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, hi_x, lo_y), circ) ||
         ICDE18::IntersectWithRange(ICDE18::Record_t(temporal_record_id, hi_x, hi_y), circ) ) {
       return true;
     }
@@ -368,6 +401,7 @@ private:
   std::vector<float> m_mins, m_maxs, m_widths;
   QueryLogger log;
   int serverID, m_K;
+  size_t m_record_fp;
   std::string IPAddress;
   float queryComm = 0;
 };
@@ -386,8 +420,12 @@ public:
     for (int i=0; i<m_IPAddresses.size(); ++i) {
       std::string IPAddress = m_IPAddresses[i];
       std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
-      printf("[Connect] channel with Silo %d at ip %s\n", i+1, IPAddress.c_str());
       m_ServerToSilos[i] = std::make_shared<ServerToSilo>(channel, i, IPAddress);
+      
+      #ifdef LOCAL_DEBUG
+      printf("[Connect] channel with Silo %d at ip %s\n", i+1, IPAddress.c_str());
+      fflush(stdout);
+      #endif
     }  
     m_GridIndexCounts.resize(m_IPAddresses.size());
   }
@@ -415,8 +453,9 @@ public:
     std::vector<Circle_t> circles;
 
     SetCircleQuery(fileName, circles);
+    printf("%zu\n", circles.size());
     for (int i=0,sz=circles.size(); i<sz; ++i) {
-      m_GetQueryAnswer_byGridIndex(circles[i], i);
+      m_GetQueryAnswer_byGridIndex(circles[i], i+1);
     }
 
     log.Print();
@@ -490,9 +529,11 @@ private:
 
     // step4. Verify the data records
     m_record_list.clear();
+    size_t m_record_fp = 0;
     for (int i=0; i<m_ServerToSilos.size(); ++i) {
       std::vector<ICDE18::Record> record_list_tmp;
       m_ServerToSilos[i]->VerifyGridRecord(circ, record_list_tmp);
+      m_record_fp += m_ServerToSilos[i]->GetRecordFP();
       m_record_list.insert(m_record_list.end(), record_list_tmp.begin(), record_list_tmp.end());
     }
 
@@ -507,7 +548,7 @@ private:
     *   Dump the query result
     *
     */
-    printf("%d %d\n", qid, (int)m_record_list.size());
+    printf("%d %zu %zu\n", qid, m_record_list.size(), m_record_fp);
     std::vector<int> ids_list_tmp;
     for (auto record : m_record_list) {
       if (record.has_p()) {
@@ -586,16 +627,30 @@ private:
 
 int main(int argc, char** argv) {
   // Expect only arg: --query_path=../../data/query.txt --ip_path=../../data/ip.txt
+  #ifdef LOCAL_DEBUG
+  std::cout << argc << std::endl;
+  for (int i=0; i<argc; ++i)
+    std::cout << argv[i] << std::endl;
+  #endif
+
   std::string query_file = ICDE18::GetQueryFilePath(argc, argv);
   std::string ip_file = ICDE18::GetSiloIPFilePath(argc, argv);
   
-  // std::string IPAddress("localhost:50051");
-  // std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
+  #ifdef LOCAL_DEBUG
+  printf("--query_path=%s --ip_path=%s\n", query_file.c_str(), ip_file.c_str());
+  fflush(stdout);
+  #endif
   
+  #ifdef LOCAL_DEBUG
   printf("[Connect] Server\n");
+  fflush(stdout);
+  #endif
   FedQueryServiceServer fedServer(ip_file);
 
+  #ifdef LOCAL_DEBUG
   printf("-------------- Test Circle Range Query --------------\n");
+  fflush(stdout);
+  #endif
   fedServer.GetQueryAnswer_byGridIndex(query_file);
 
   // printf("-------------- Test Rectangle Range Query --------------\n");

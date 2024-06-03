@@ -12,7 +12,7 @@ namespace DIFFERENTIALPRIVACY {
 
 // classic mechanism in differential privacy
 //
-float LaplaceMechanism(float sensitivity, float epsilon);
+double LaplaceMechanism(float sensitivity, float epsilon);
 
 
 

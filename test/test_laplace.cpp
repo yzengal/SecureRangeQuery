@@ -13,11 +13,11 @@ float LaplaceMechanism(float sensitivity, float epsilon) {
     std::uniform_real_distribution<float> uniform(0.0, 1.0);
     float scale = sensitivity/epsilon;
 
-    std::exponential_distribution<double> distribution1(1.0/scale);
-    std::exponential_distribution<double> distribution2(1.0/scale);
-    double e1 = distribution1(generator);
-    double e2 = distribution2(generator);
-    return e1-e2;
+    std::exponential_distribution<float> distribution1(1.0/scale);
+    std::exponential_distribution<float> distribution2(1.0/scale);
+    float e1 = distribution1(generator);
+    float e2 = distribution2(generator);
+    return floor(e1-e2);
 
     // float u1, u2;
     // do {
@@ -37,12 +37,12 @@ float LaplaceMechanism(float sensitivity, float epsilon) {
 }
 
 int main() {
-    const int N = 5000;
+    const int N = 100;
     ofstream fout;
 
     fout.open("log");
     vector<float> vec;
-    float sensitivity = 1, epsilon = 0.001;
+    float sensitivity = 1, epsilon = 0.01;
 
     for (int i=0; i<N; ++i) {
         vec.emplace_back(LaplaceMechanism(sensitivity, epsilon));
