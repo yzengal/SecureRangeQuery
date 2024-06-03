@@ -477,7 +477,7 @@ private:
         AES aes(AESKeyLength::AES_256);
 
         std::vector<unsigned char> plain_data = SerializeRecord(r);
-        std::vector<unsigned char> encrypt_data = aes.EncryptECB(plain, key);
+        std::vector<unsigned char> encrypt_data = aes.EncryptECB(plain_data, m_EncryptKeys);
         std::string data_str(reinterpret_cast<const char*>(encrypt_data.data()), encrypt_data.size());
        
         EncryptRecord ret;

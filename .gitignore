@@ -45,3 +45,4 @@ data/*w.txt
 .history/
 .VSCodeCounter/
 cmake/
+build/
