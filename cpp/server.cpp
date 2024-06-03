@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -16,6 +17,7 @@
 
 #include "global.h"
 #include "ICDE18.grpc.pb.h"
+#include "AES.h"
 
 #define ENCRYPT_RECORD
 
@@ -41,7 +43,7 @@ using ICDE18::Circle;
 using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
-using ICDE18::EncryptRecord
+using ICDE18::EncryptRecord;
 using ICDE18::IntVector;
 using ICDE18::FloatVector;
 using ICDE18::ByteVector;
@@ -321,10 +323,10 @@ public:
 
     #ifdef ENCRYPT_RECORD
     // step 1: get the decrypted keys
-    ClientContext context;
     ByteVector response;
+    ClientContext context_tmp;
 
-    Status status = stub_->GetEncryptKeys(&context, request, &response); 
+    Status status = stub_->GetEncryptKeys(&context_tmp, request, &response); 
     if (!status.ok()) {
       exit(-1);
     }
@@ -332,9 +334,18 @@ public:
     queryComm += response.ByteSizeLong();
     log.LogAddComm(response.ByteSizeLong());
 
-    const int n_keys = response->size();
-    const std::string& received_key_data = response->values();  
+    const int n_keys = response.size();
+    const std::string& received_key_data = response.values();  
     std::vector<unsigned char> decrypt_keys(received_key_data.begin(), received_key_data.end());  
+    
+    // std::cout << n_keys << " " << decrypt_keys.size() << std::endl;
+    // for (int i=0; i<decrypt_keys.size(); ++i) {
+    //   std::cout << std::hex << std::uppercase; // 设置为十六进制，并输出为大写字母  
+    //   std::cout << std::setw(2) << std::setfill('0'); // 设置宽度为2，不足时前面用'0'填充  
+    //   std::cout << static_cast<int>(decrypt_keys[i]) << " ";
+    // }
+    // std::cout << std::endl;
+    // fflush(stdout);
 
     // step 2: get the encrypted records
     AES aes(AESKeyLength::AES_256);
@@ -344,22 +355,22 @@ public:
         stub_->GetFilterGridEncryptRecord(&context, request));
     while (reader->Read(&encrypt_record)) {
       // step 2.1: get encrypted bytes
-      const std::string& received_record_data = encrypt_record->data();  
+      const std::string& received_record_data = encrypt_record.data();  
       std::vector<unsigned char> encrypt_record_data(received_record_data.begin(), received_record_data.end());  
       // step 2.2: get decrypted bytes
       std::vector<unsigned char> record_data = aes.DecryptECB(encrypt_record_data, decrypt_keys);
       // step 2.3: get decrypted record
-      Record_t rec = DeserializeRecord(record_data);
+      Record_t rec = ICDE18::DeserializeRecord(record_data);
       // step 2.4: transform record_t into record
       cand_record = MakeRecord(rec);
       m_record_list.emplace_back(cand_record);
     }
-    Status status = reader->Finish();
+    status = reader->Finish();
     if (!status.ok()) {
       exit(-1);
     }
     queryComm += encrypt_record.ByteSizeLong() * m_record_list.size();
-    log.LogAddComm(encrypt_record.ByteSizeLong() * m_record_list.size(););
+    log.LogAddComm(encrypt_record.ByteSizeLong() * m_record_list.size());
 
     #else
     

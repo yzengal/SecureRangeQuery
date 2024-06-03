@@ -332,8 +332,8 @@ void GetIPAddresses(const std::string& fileName, std::vector<std::string>& ip_ad
 std::vector<unsigned char> SerializeRecord(const Record_t& rec) {
     const int sz = ((sizeof(Record_t)+15)/16) * 16;
     unsigned char des[sz];
-    memcpy(des, &rec, sizeof(unsigned char)*sz);
-    return std::vector<unsigned char>(std::begin(des), std::end(des));
+    memcpy(des, &rec, sizeof(Record_t));
+    return std::vector<unsigned char>(des, des+sz);
 }
 
 Record_t DeserializeRecord(const std::vector<unsigned char>& charVector) {

@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <string>
 #include <vector>
@@ -419,6 +420,15 @@ public:
                         ByteVector* bytes) override {
         const size_t n_keys = m_EncryptKeys.size();
 
+        // std::cout << n_keys << " " << m_EncryptKeys.size() << std::endl;
+        // for (int i=0; i<m_EncryptKeys.size(); ++i) {
+        //     std::cout << std::hex << std::uppercase; // 设置为十六进制，并输出为大写字母  
+        //     std::cout << std::setw(2) << std::setfill('0'); // 设置宽度为2，不足时前面用'0'填充  
+        //     std::cout << static_cast<int>(m_EncryptKeys[i]) << " ";
+        // }
+        // std::cout << std::endl;
+        // fflush(stdout);
+
         std::string data_str(reinterpret_cast<const char*>(m_EncryptKeys.data()), m_EncryptKeys.size());
         bytes->set_size(n_keys);
         bytes->set_values(data_str);
@@ -478,7 +488,7 @@ private:
 
         std::vector<unsigned char> plain_data = SerializeRecord(r);
         std::vector<unsigned char> encrypt_data = aes.EncryptECB(plain_data, m_EncryptKeys);
-        std::string data_str(reinterpret_cast<const char*>(encrypt_data.data()), encrypt_data.size());
+        std::string data_str(encrypt_data.begin(), encrypt_data.end());
        
         EncryptRecord ret;
         ret.set_id(_id);
@@ -486,7 +496,7 @@ private:
         
         return ret;
     }
-
+    
     std::vector<Record_t> m_RecordVector;
     std::vector<unsigned char> m_EncryptKeys;
     std::unique_ptr<Silo> m_silo;
