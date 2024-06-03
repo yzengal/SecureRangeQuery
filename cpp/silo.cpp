@@ -394,7 +394,7 @@ public:
     }
 
     Status GetFilterGridEncryptRecord(ServerContext* context,
-                        const Empty* circle,
+                        const Empty* empty_request,
                         ServerWriter<EncryptRecord>* writer) override {
         EncryptRecord record;
         int record_id = 0;
@@ -415,7 +415,7 @@ public:
     }
 
     Status GetEncryptKeys(ServerContext* context,
-                        const Empty* circle,
+                        const Empty* empty_request,
                         ByteVector* bytes) override {
         const size_t n_keys = m_EncryptKeys.size();
 

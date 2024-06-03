@@ -17,6 +17,8 @@
 #include "global.h"
 #include "ICDE18.grpc.pb.h"
 
+#define ENCRYPT_RECORD
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -32,14 +34,17 @@ using grpc::Status;
 using google::protobuf::Empty;
 using ICDE18::Circle_t;
 using ICDE18::Rectangle_t;
+using ICDE18::Record_t;
 using ICDE18::Point;
 using ICDE18::Rectangle;
 using ICDE18::Circle;
 using ICDE18::CircleQueryRange;
 using ICDE18::RectangleQueryRange;
 using ICDE18::Record;
+using ICDE18::EncryptRecord
 using ICDE18::IntVector;
 using ICDE18::FloatVector;
+using ICDE18::ByteVector;
 using ICDE18::GridIndexCounts;
 using ICDE18::RecordSummary;
 using ICDE18::FedQueryService;
@@ -314,6 +319,50 @@ public:
     fflush(stdout);
     #endif
 
+    #ifdef ENCRYPT_RECORD
+    // step 1: get the decrypted keys
+    ClientContext context;
+    ByteVector response;
+
+    Status status = stub_->GetEncryptKeys(&context, request, &response); 
+    if (!status.ok()) {
+      exit(-1);
+    }
+
+    queryComm += response.ByteSizeLong();
+    log.LogAddComm(response.ByteSizeLong());
+
+    const int n_keys = response->size();
+    const std::string& received_key_data = response->values();  
+    std::vector<unsigned char> decrypt_keys(received_key_data.begin(), received_key_data.end());  
+
+    // step 2: get the encrypted records
+    AES aes(AESKeyLength::AES_256);
+    EncryptRecord encrypt_record;
+
+    std::unique_ptr<ClientReader<EncryptRecord> > reader(
+        stub_->GetFilterGridEncryptRecord(&context, request));
+    while (reader->Read(&encrypt_record)) {
+      // step 2.1: get encrypted bytes
+      const std::string& received_record_data = encrypt_record->data();  
+      std::vector<unsigned char> encrypt_record_data(received_record_data.begin(), received_record_data.end());  
+      // step 2.2: get decrypted bytes
+      std::vector<unsigned char> record_data = aes.DecryptECB(encrypt_record_data, decrypt_keys);
+      // step 2.3: get decrypted record
+      Record_t rec = DeserializeRecord(record_data);
+      // step 2.4: transform record_t into record
+      cand_record = MakeRecord(rec);
+      m_record_list.emplace_back(cand_record);
+    }
+    Status status = reader->Finish();
+    if (!status.ok()) {
+      exit(-1);
+    }
+    queryComm += encrypt_record.ByteSizeLong() * m_record_list.size();
+    log.LogAddComm(encrypt_record.ByteSizeLong() * m_record_list.size(););
+
+    #else
+    
     std::unique_ptr<ClientReader<Record> > reader(
         stub_->GetFilterGridRecord(&context, request));
     while (reader->Read(&cand_record)) {
@@ -332,9 +381,9 @@ public:
       #endif
       exit(-1);
     }
-
     queryComm += CommQueryAnswer(m_record_list);
     log.LogAddComm(CommQueryAnswer(m_record_list));
+    #endif
 
     #ifdef LOCAL_DEBUG
     printf("There are %d objects in the query range:\n", (int)m_record_list.size());
@@ -347,6 +396,7 @@ public:
       }
     }
     fflush(stdout);
+
     #endif   
   }
 
@@ -369,6 +419,18 @@ public:
   }
 
 private:
+  Record MakeRecord(const Record_t& r) {
+      Record ret;
+      Point p;
+
+      ret.set_id(r.ID);
+      p.set_x(r.x);
+      p.set_y(r.y);
+      ret.mutable_p()->CopyFrom(p);
+      
+      return ret;
+  }
+
   bool GridIntersectCircle(const size_t& gid, const Circle_t& circ) {
     size_t idx_x = gid % this->m_K;
     size_t idx_y = gid / this->m_K;
