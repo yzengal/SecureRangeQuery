@@ -33,12 +33,23 @@ def get_results(fileName):
                 else:
                     tmpList = set(map(int, line.split()))
                     results[qid] = [tmpList, cand]
+            elif i==n*2+1:
+                if line.find("Query Log") >= 0:
+                    hasLog = True
+                else:
+                    hasLog = False
+            elif i==n*2+2:
+                if hasLog:
+                    results['log'] = line
             i += 1
     return results
 
 def dumpToFile(fileName, truths, results):
     total_recall, total_precision = 0.0, 0.0
+    lines = []
     for qid in sorted(truths.keys()):
+        if qid == 'log':
+            continue
         true_answers = truths[qid]
         recv_answers, recv_cand = results[qid]
         tp = len(true_answers.intersection(recv_answers))
@@ -47,12 +58,12 @@ def dumpToFile(fileName, truths, results):
         fp = recv_cand - tp
         cur_recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         cur_precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0 
-        print(f"recall = {cur_recall:.4f}, cur_precision = {cur_precision:.4f}")
+        line = f"recall = {cur_recall:.4f}, cur_precision = {cur_precision:.4f}"
+        print(line)
+        lines.append(line)
         total_recall += cur_recall
         total_precision += cur_precision
 
-
-    
     query_num = len(truths)
     if query_num == 0:
         avg_recall, avg_precision = 0.0, 0.0
@@ -60,12 +71,17 @@ def dumpToFile(fileName, truths, results):
         avg_recall = total_recall / query_num
         avg_precision = total_precision / query_num
     
-    line = "\n[AVERAGE] recall = %.6f, precision = %.6f\n" % (avg_recall, avg_precision)
+    avg_line = "[AVERAGE] recall = %.6f, precision = %.6f\n" % (avg_recall, avg_precision)
     if not fileName:                # fileName is empty
-        print(line)
+        print(avg_line)
     else:
         with open(fileName, "w") as fout:
-            fout.write(line)
+            for line in lines:
+                fout.write(line + "\n")
+            fout.write(avg_line)
+            if 'log' in results:
+                long_line = results['log']
+                fout.write(long_line)
 
 
 if __name__ == "__main__":

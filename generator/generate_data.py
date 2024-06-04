@@ -24,7 +24,7 @@ def dumpToFile(fileName, positions):
     with open(fileName, "w") as fout:
         fout.write(str(len(positions)) + "\n")
         for i in range(len(positions)):
-            line = "%s %s %s\n" % (i+1, positions[i][0], positions[i][1])
+            line = "%s %s %s\n" % (i+1+2000, positions[i][0], positions[i][1])
             fout.write(line)
   
 
