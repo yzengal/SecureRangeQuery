@@ -29,6 +29,16 @@ float GetSquareDistance(const Record_t& a, const Record_t& b) {
     return deltax*deltax + deltay*deltay;
 }
 
+float GetSquareDistance(const Point_t& a, const Point_t& b) {
+    float deltax = a.x-b.x;
+    float deltay = a.y-b.y;
+    return deltax*deltax + deltay*deltay;
+}
+
+float GetDistance(const Point_t& a, const Point_t& b) {
+    return std::sqrt(GetSquareDistance(a, b));
+}
+
 float GetDistance(const Point& a, const Point& b) {
     return std::sqrt(GetSquareDistance(a, b));
 }

@@ -20,6 +20,7 @@
 #include "ICDE18.grpc.pb.h"
 #include "global.h"
 #include "AES.h"
+#include "differentialprivacy.h"
 #include "grid.hpp"
 
 using grpc::Server;
@@ -258,7 +259,7 @@ private:
 class FedQueryServiceImpl final : public FedQueryService::Service {
 public:
     explicit FedQueryServiceImpl(const int siloID, const std::string& fileName) {
-        m_silo = std::make_unique<Silo>(siloID, fileName);  
+        m_silo = std::make_unique<Silo>(siloID, fileName, DIFFERENTIALPRIVACY::SPATIAL_DP_EPSILON);  
         
         const size_t n_keys = 256 / 8;
         m_EncryptKeys.resize(n_keys);
@@ -514,6 +515,8 @@ void RunSilo(const int siloID, const std::string& IPAddress, const std::string& 
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(siloService_ptr.get());
+    builder.SetMaxSendMessageSize(INT_MAX);
+    builder.SetMaxReceiveMessageSize(INT_MAX);
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << server_address << std::endl;
     server->Wait();

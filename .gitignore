@@ -44,5 +44,6 @@ data/*w.txt
 .vsCodeCounter/
 .history/
 .VSCodeCounter/
+bash/log*
 cmake/
 build/

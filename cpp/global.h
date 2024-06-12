@@ -39,26 +39,96 @@ struct Rectangle_t {
     float dx, dy;
 };
 
+struct Point_t {
+    float x, y;
+
+    Point_t() {}
+    Point_t(float x_, float y_): x(x_), y(y_) {}
+
+    Point_t& operator=(const Point_t& other) {  
+        if (this != &other) {
+            x = other.x;
+            y = other.y;
+        }  
+        return *this;  
+    }  
+
+    void Print() const {
+        printf("x = %.2lf, y = %.2lf\n", x, y);
+        fflush(stdout);
+    }
+};
+
 struct Circle_t {
     QueryType_t qtype;
     float x, y;
     float rad;
+
+    Circle_t() {}
+    Circle_t(QueryType_t qtype_, float x_, float y_, float rad_) :
+        qtype(qtype_), x(x_), y(y_), rad(rad_) {}
+
+    Circle_t& operator=(const Circle_t& other) {  
+        if (this != &other) {
+            qtype = other.qtype;
+            x = other.x;
+            y = other.y;
+            rad = other.rad;  
+        }  
+        return *this;  
+    }  
+
+    void Print() const {
+        if (qtype == QueryType_t::RANGE_QUERY)
+            printf("type = RANGE_QUERY, ");
+        else if (qtype == QueryType_t::RANGE_COUNT)
+            printf("type = RANGE_COUNT, ");
+        else
+            printf("type = UNDEFINED, ");
+        printf("x = %.2lf, y = %.2lf, rad = %.2lf\n", x, y, rad);
+        fflush(stdout);
+    }
 };
 
 struct Record_t {
     int ID;
     float x, y;
+
     Record_t(int _ID=-1, float _x=0., float _y=0.): ID(_ID), x(_x), y(_y) {}
+
+    Record_t& operator=(const Record_t& other) {  
+        if (this != &other) {
+            ID = other.ID;  
+            x = other.x;
+            y = other.y;
+        }  
+        return *this;  
+    }  
+
+    bool operator==(const Record_t& other) const {
+        return (ID==other.ID) && (x==other.x) && (y==other.y);  
+    }  
+
+    bool operator!=(const Record_t& other) const {  
+        return (ID!=other.ID) || (x!=other.x) || (y!=other.y); 
+    }  
+
+    void Print() const {
+        printf("ID = %d, x = %.2lf, y = %.2lf\n", ID, x, y);
+        fflush(stdout);
+    }
 };
 
 // process spatial basic function
 //
+float GetDistance(const Point_t& a, const Point_t& b);
 float GetDistance(const Point& a, const Point& b);
 float GetDistance(const Record_t& a, const Point& b);
 float GetDistance(const Record_t& a, const Record_t& b);
 float GetSquareDistance(const Point& a, const Point& b);
 float GetSquareDistance(const Record_t& a, const Point& b);
 float GetSquareDistance(const Record_t& a, const Record_t& b);
+float GetSquareDistance(const Point_t& a, const Point_t& b);
 bool IntersectWithRange(const Point& a, const Rectangle& b);
 bool IntersectWithRange(const Point& a, const Circle& b);
 bool IntersectWithRange(const Record_t& a, const Rectangle& b);
@@ -169,10 +239,12 @@ public:
     }
 
     void Print() {
-        float AvgQueryTime = (queryNum==0) ? 0 : (queryTime/queryNum);
-        float AvgQueryComm = (queryNum==0) ? 0 : (queryComm/queryNum);
+        float AvgQueryTime = (queryNum==0) ? 0 : (queryTime/queryNum); // ms
+        float AvgQueryComm = (queryNum==0) ? 0 : (queryComm/queryNum); // bytes
+        AvgQueryTime /= 1000;
+        AvgQueryComm /= 1024;
         printf("-------------- Query Log --------------\n");
-        printf("QueryNum = %d, AvgQueryTime = %.2fms, AvgQueryComm = %.2fbytes\n\n", queryNum, AvgQueryTime, AvgQueryComm);
+        printf("QueryNum = %d, AvgQueryTime = %.2f [s], AvgQueryComm = %.2f [kb]\n\n", queryNum, AvgQueryTime, AvgQueryComm);
         fflush(stdout);
     }
 

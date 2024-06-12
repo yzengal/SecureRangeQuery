@@ -16,6 +16,7 @@
 #include <grpcpp/security/credentials.h>
 
 #include "global.h"
+#include "differentialprivacy.h"
 #include "ICDE18.grpc.pb.h"
 #include "AES.h"
 
@@ -37,6 +38,7 @@ using google::protobuf::Empty;
 using ICDE18::Circle_t;
 using ICDE18::Rectangle_t;
 using ICDE18::Record_t;
+using ICDE18::Point_t;
 using ICDE18::Point;
 using ICDE18::Rectangle;
 using ICDE18::Circle;
@@ -490,9 +492,12 @@ public:
 
     // bridge the channel between server and each data silo
     m_ServerToSilos.resize(m_IPAddresses.size());
+    grpc::ChannelArguments args;  
+    args.SetInt(GRPC_ARG_MAX_SEND_MESSAGE_LENGTH, INT_MAX);  
+    args.SetInt(GRPC_ARG_MAX_RECEIVE_MESSAGE_LENGTH, INT_MAX); 
     for (int i=0; i<m_IPAddresses.size(); ++i) {
       std::string IPAddress = m_IPAddresses[i];
-      std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(IPAddress, grpc::InsecureChannelCredentials());
+      std::shared_ptr<grpc::Channel> channel = grpc::CreateCustomChannel(IPAddress, grpc::InsecureChannelCredentials(), args);
       m_ServerToSilos[i] = std::make_shared<ServerToSilo>(channel, i, IPAddress);
       
       #ifdef LOCAL_DEBUG
@@ -595,7 +600,11 @@ private:
     GetGridIndex();
 
     // step2. Filter Grid Index
-    SendFilterGridIndex(circ);
+    std::pair<double,double> perturb_point = DIFFERENTIALPRIVACY::PlanarLaplaceMechanism(circ.x, circ.y, DIFFERENTIALPRIVACY::SPATIAL_DP_EPSILON);
+    Circle_t perturb_circ(circ.qtype, perturb_point.first, perturb_point.second, circ.rad);
+    perturb_circ.rad += ICDE18::GetDistance(Point_t(circ.x, circ.y), Point_t(perturb_circ.x, perturb_circ.y));
+
+    SendFilterGridIndex(perturb_circ);
 
     // step3. Receive records in the filtered grids
     GetFilterGridRecord();
@@ -725,9 +734,6 @@ int main(int argc, char** argv) {
   fflush(stdout);
   #endif
   fedServer.GetQueryAnswer_byGridIndex(query_file);
-
-  // printf("-------------- Test Rectangle Range Query --------------\n");
-  // fedServer.GetRectangleQueryAnswer(query_file);
 
 
   return 0;

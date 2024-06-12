@@ -4,6 +4,15 @@ project(ICDE18 C CXX)
 set(CMAKE_CXX_STANDARD 14)  
 set(CMAKE_CXX_STANDARD_REQUIRED ON) 
 
+set(BOOST_ROOT "/home/yzengal/software/boost_1_85_0")  
+find_package(Boost 1.85.0 REQUIRED)  
+
+if(NOT Boost_FOUND)  
+    message(FATAL_ERROR "Could not find Boost version 1.85.0 or higher")  
+endif()  
+
+include_directories("${Boost_INCLUDE_DIR}") 
+
 include(./common.cmake)
 
 get_filename_component(icde_proto "./proto/ICDE18.proto" ABSOLUTE)
