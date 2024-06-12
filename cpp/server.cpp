@@ -420,13 +420,13 @@ public:
       if (!record.has_p()) {
         continue;
       }
-      if (record.id() < 0) {
-        continue;
+      if (record.id() >= 0) {
+        ++m_record_fp;
       }
-      ++m_record_fp;
       ICDE18::Record_t record_tmp(-1, record.p().x(), record.p().y());
       if (ICDE18::IntersectWithRange(record_tmp, circ)) {
-        res_record_list.emplace_back(record);
+        if (record.id() >= 0)
+          res_record_list.emplace_back(record);
       }
     }
   }

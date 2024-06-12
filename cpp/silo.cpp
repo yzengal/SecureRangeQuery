@@ -224,7 +224,7 @@ public:
                 **/
                 record_list_tmp.resize(perturb_count);
             } else if (perturb_count > true_count) {
-                ICDE18::Record_t dummy_record_tmp(-1, -1e8, -1e8);
+                ICDE18::Record_t dummy_record_tmp(-1, -1e10, -1e10);
                 for (size_t i=true_count; i<perturb_count; ++i) {
                     record_list_tmp.emplace_back(dummy_record_tmp);
                 }
@@ -401,6 +401,7 @@ public:
         EncryptRecord record;
         int record_id = 0;
         m_RecordVector.clear();
+        float grpc_comm = 0.0;
 
         std::vector<Record_t> ans;
         m_silo->GetFilterGridRecord(ans);
@@ -410,8 +411,9 @@ public:
            record = MakeEncryptRecord(record_id, record_);
            writer->Write(record);
            record_id++;
+           grpc_comm += record.ByteSizeLong();
         }
-        log.LogOneQuery(record.ByteSizeLong() * ans.size());
+        log.LogOneQuery(grpc_comm);
 
         return Status::OK;
     }

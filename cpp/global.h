@@ -244,7 +244,7 @@ public:
         AvgQueryTime /= 1000;
         AvgQueryComm /= 1024;
         printf("-------------- Query Log --------------\n");
-        printf("QueryNum = %d, AvgQueryTime = %.2f [s], AvgQueryComm = %.2f [kb]\n\n", queryNum, AvgQueryTime, AvgQueryComm);
+        printf("QueryNum = %d, AvgQueryTime = %.2f [s], AvgQueryComm = %.2f [KB]\n\n", queryNum, AvgQueryTime, AvgQueryComm);
         fflush(stdout);
     }
 
