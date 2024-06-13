@@ -270,12 +270,12 @@ void GetInputQuery(const std::string& fileName, std::vector<Rectangle_t>& querie
 
     queries.resize(qn);
     for (int i=0; i<qn; ++i) {
-        fin >> queryType >> queries[i].x >> queries[i].y >> queries[i].dx >> queries[i].dy;
+        fin >> queries[i].x >> queries[i].y >> queries[i].dx >> queries[i].dy;
         if (fin.fail()) {
             std::cout << "Failed to parse the %d-th query " << i+1 << std::endl;
             abort();
         }  
-        queries[i].qtype = GetQueryType(queryType);
+        queries[i].qtype = QueryType_t::RANGE_QUERY;
     }
     
 
@@ -300,12 +300,12 @@ void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries) 
 
     queries.resize(qn);
     for (int i=0; i<qn; ++i) {
-        fin >> queryType >> queries[i].x >> queries[i].y >> queries[i].rad;
+        fin >> queries[i].x >> queries[i].y >> queries[i].rad;
         if (fin.fail()) {
             std::cout << "Failed to parse the %d-th query " << i+1 << std::endl;
             abort();
         }  
-        queries[i].qtype = GetQueryType(queryType);
+        queries[i].qtype = QueryType_t::RANGE_QUERY;
         #ifdef LOCAL_DEBUG
         printf("Query #%d: %s, location=(%.2lf, %.2lf), rad=%.2lf\n", i+1, queryType.c_str(), queries[i].x, queries[i].y, queries[i].rad);
         #endif
