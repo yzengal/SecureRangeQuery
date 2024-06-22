@@ -293,6 +293,7 @@ void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries) 
     std::string queryType;
 
     fin >> qn;
+    std::cout << "query number = " << qn << std::endl;
     if (fin.fail()) {
         printf("Failed to parse the query number %s\n", fileName.c_str());
         abort();
@@ -302,7 +303,7 @@ void GetInputQuery(const std::string& fileName, std::vector<Circle_t>& queries) 
     for (int i=0; i<qn; ++i) {
         fin >> queries[i].x >> queries[i].y >> queries[i].rad;
         if (fin.fail()) {
-            std::cout << "Failed to parse the %d-th query " << i+1 << std::endl;
+            std::cout << "Failed to parse the " << i+1 << "-th query" << std::endl;
             abort();
         }  
         queries[i].qtype = QueryType_t::RANGE_QUERY;

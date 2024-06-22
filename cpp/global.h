@@ -241,10 +241,10 @@ public:
     void Print() {
         float AvgQueryTime = (queryNum==0) ? 0 : (queryTime/queryNum); // ms
         float AvgQueryComm = (queryNum==0) ? 0 : (queryComm/queryNum); // bytes
-        AvgQueryTime /= 1000;
+        AvgQueryTime /= 1;
         AvgQueryComm /= 1024;
         printf("-------------- Query Log --------------\n");
-        printf("QueryNum = %d, AvgQueryTime = %.2f [s], AvgQueryComm = %.2f [KB]\n\n", queryNum, AvgQueryTime, AvgQueryComm);
+        printf("QueryNum = %d, AvgQueryTime = %.6f [ms], AvgQueryComm = %.6f [KB]\n\n", queryNum, AvgQueryTime, AvgQueryComm);
         fflush(stdout);
     }
 
