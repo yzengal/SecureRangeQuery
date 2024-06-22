@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 
 project(ICDE18 C CXX)
-set(CMAKE_CXX_STANDARD 14)  
+set(CMAKE_CXX_STANDARD 17)  
 set(CMAKE_CXX_STANDARD_REQUIRED ON) 
 
 set(BOOST_ROOT "/home/yzengal/software/boost_1_85_0")  
