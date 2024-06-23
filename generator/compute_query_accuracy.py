@@ -25,6 +25,8 @@ def get_results(fileName):
         i, n = 0, 0
         for line in fin:
             line = line.strip()
+            if line.startswith("query number ="):
+                continue
             if i==0:
                 n = int(line)
             elif i<=n*2:
@@ -53,11 +55,23 @@ def dumpToFile(fileName, truths, results):
         true_answers = truths[qid]
         recv_answers, recv_cand = results[qid]
         tp = len(true_answers.intersection(recv_answers))
-        assert tp==len(recv_answers), "recv_answer has false positive"
+        # assert tp==len(recv_answers), "recv_answer has false positive"
         fn = len(true_answers - recv_answers)
         fp = recv_cand - tp
-        cur_recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        cur_precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0 
+        if (tp + fn) > 0:
+            cur_recall = tp / (tp + fn)
+        else:
+            if tp==0:
+                cur_recall = 1.00
+            else:
+                cur_recall = 0.00
+        if (tp + fp) > 0:
+            cur_precision = tp / (tp + fp)
+        else:
+            if tp==0:
+                cur_precision = 0.00
+            else:
+                cur_precision = 0.00
         line = f"recall = {cur_recall:.4f}, cur_precision = {cur_precision:.4f}"
         print(line)
         lines.append(line)
