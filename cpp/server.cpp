@@ -500,10 +500,8 @@ public:
       std::shared_ptr<grpc::Channel> channel = grpc::CreateCustomChannel(IPAddress, grpc::InsecureChannelCredentials(), args);
       m_ServerToSilos[i] = std::make_shared<ServerToSilo>(channel, i, IPAddress);
       
-      #ifdef LOCAL_DEBUG
       printf("[Connect] channel with Silo %d at ip %s\n", i+1, IPAddress.c_str());
       fflush(stdout);
-      #endif
     }  
     m_GridIndexCounts.resize(m_IPAddresses.size());
   }

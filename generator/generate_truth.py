@@ -28,7 +28,7 @@ def get_circles(fileName):
             if i==0:
                 n = int(line)
             elif i<=n:
-                x, y, radius = map(float, line.split()[1:4])
+                x, y, radius = map(float, line.split()[0:3])
                 center = (x, y)  
                 circles.append((center, radius))  
             i += 1
@@ -44,7 +44,8 @@ def get_positions(fileNames):
                 if i==0:
                     n = int(line)
                 elif i<=n:
-                    id, x, y = map(int, line.split()[:3])
+                    id = int(line.split()[0])
+                    x, y = map(float, line.split()[1:3])
                     point = (x, y)  
                     positions.append((id, point))  
                 i += 1
